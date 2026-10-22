@@ -1,0 +1,212 @@
+/* == module:shop == */
+
+/* 余额卡 */
+.shop-coin-card {
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-real, var(--accent)) 100%);
+  color: #fff;
+  border: none;
+}
+.shop-coin-card__main { display: flex; align-items: center; gap: 14px; }
+.shop-coin-card__wallet {
+  width: 54px; height: 54px; flex: none;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.shop-coin-card__label { font-size: 12px; opacity: 0.85; }
+.shop-coin-card__num {
+  font-size: 34px; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+.shop-coin-card__sub {
+  display: flex; gap: 18px; margin-top: 14px;
+  font-size: 12.5px; opacity: 0.92;
+}
+.shop-coin-card__sub span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* 布局 */
+.shop-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.shop-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.shop-h2 {
+  margin: 0 0 12px; font-size: 16px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* 心愿单 */
+.shop-wish-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.shop-suggest { font-size: 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.shop-suggest__chip {
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: all var(--tr-fast);
+}
+.shop-suggest__chip:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.shop-wish-list { list-style: none; margin: 0; padding: 0; }
+.shop-wish {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px dashed var(--border);
+  transition: background var(--tr-fast);
+}
+.shop-wish:last-child { border-bottom: none; }
+.shop-wish:hover { background: var(--accent-soft); border-radius: 10px; }
+.shop-wish__info {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0; flex: 1;
+}
+.shop-wish__info strong { font-size: 13.5px; }
+.shop-wish__info .muted { font-size: 11.5px; }
+.shop-wish.is-done .shop-wish__info strong {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+.shop-wish__check { color: var(--success-text, #047857); flex: none; }
+.shop-wish-empty { padding: 26px 12px; }
+.shop-wish-empty p { margin: 8px 0 0; font-size: 12.5px; }
+
+/* 赚币攻略 */
+.shop-guide__table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.shop-guide__table td { padding: 7px 4px; border-bottom: 1px dashed var(--border); }
+.shop-guide__table tr:last-child td { border-bottom: none; }
+.shop-guide__icon { color: var(--accent); width: 24px; }
+.shop-guide__coin {
+  text-align: right; font-weight: 700;
+  color: var(--success-text, #047857); font-variant-numeric: tabular-nums;
+}
+
+/* 流水 */
+.shop-rec-list { list-style: none; margin: 0; padding: 0; }
+.shop-rec {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px dashed var(--border);
+  transition: background var(--tr-fast);
+}
+.shop-rec:last-child { border-bottom: none; }
+.shop-rec:hover { background: var(--accent-soft); border-radius: 10px; }
+.shop-rec__sign {
+  width: 22px; height: 22px; flex: none;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.shop-rec__sign.is-earn { background: rgba(47, 191, 113, 0.15); color: var(--success-text, #047857); }
+.shop-rec__sign.is-spend { background: rgba(226, 82, 82, 0.14); color: var(--danger-text, #DC2626); }
+.shop-rec__info {
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 0; flex: 1;
+}
+.shop-rec__info strong {
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shop-rec__info .muted { font-size: 11.5px; }
+.shop-rec__amount {
+  font-weight: 700; font-size: 14px;
+  font-variant-numeric: tabular-nums; flex: none;
+}
+.shop-rec__amount.is-earn { color: var(--success-text, #047857); }
+.shop-rec__amount.is-spend { color: var(--danger-text, #DC2626); }
+.shop-rec-empty { padding: 22px 12px; }
+.shop-rec-empty p { margin: 8px 0 0; font-size: 12.5px; }
+
+/* 分页 */
+.shop-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; gap: 8px;
+}
+.shop-pager__info { font-size: 12px; font-variant-numeric: tabular-nums; }
+.shop-pager .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .shop-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .shop-wish-form { grid-template-columns: 1fr 76px auto; gap: 6px; }
+  .shop-coin-card__num { font-size: 28px; }
+}
+
+/* ===== BE-05 美化：金色余额 / 钱包微转 / 对勾动画 / 流水强化 / 不足抖动 ===== */
+
+/* 金币数字：金色渐变文字 */
+.shop-coin-card__num {
+  background: linear-gradient(100deg, #fff 20%, #ffe9a8 45%, #ffd257 60%, #fff 85%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.22));
+}
+
+/* 钱包 coin 图标微转（缓慢左右轻摆，hover 加速） */
+.shop-coin-card__wallet svg {
+  animation: coin-sway 4.5s ease-in-out infinite;
+  transform-origin: 50% 55%;
+}
+@keyframes coin-sway {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+.shop-coin-card:hover .shop-coin-card__wallet svg { animation-duration: 1.4s; }
+
+/* 心愿兑换成功：对勾弹入 + 行闪光 */
+.shop-wish__check { display: inline-flex; animation: wish-check-pop 0.5s cubic-bezier(0.34, 1.7, 0.64, 1) backwards; }
+@keyframes wish-check-pop {
+  0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.25) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.shop-wish.is-done { animation: wish-done-glow 1.2s ease-out; }
+@keyframes wish-done-glow {
+  0% { background: rgba(47, 191, 113, 0.18); }
+  100% { background: transparent; }
+}
+
+/* 流水：earn + 号放大强调、spend 红色弱化 */
+.shop-rec__sign.is-earn svg { transform: scale(1.15); }
+.shop-rec:hover .shop-rec__sign.is-earn { animation: earn-bloom 0.6s cubic-bezier(0.34, 1.6, 0.64, 1); }
+@keyframes earn-bloom {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47, 191, 113, 0.35); }
+  55% { transform: scale(1.22); box-shadow: 0 0 0 6px rgba(47, 191, 113, 0); }
+  100% { transform: scale(1); }
+}
+.shop-rec__sign.is-spend svg { opacity: 0.85; }
+
+/* 余额不足：按钮抖动（.shake 备用类，JS 附加即生效） */
+.shake { animation: shop-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes shop-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-coin-card__wallet svg,
+  .shop-wish__check,
+  .shop-wish.is-done,
+  .shop-rec:hover .shop-rec__sign.is-earn,
+  .shake { animation: none; }
+}

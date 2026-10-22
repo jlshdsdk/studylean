@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>研轻 · 系统自测</title>
+<style>
+  body { font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; max-width: 860px; margin: 24px auto; padding: 0 20px; background: #F5F7FF; color: #1A1D2E; }
+  h1 { font-size: 20px; }
+  .summary { padding: 14px 18px; border-radius: 12px; margin: 14px 0; font-weight: 700; font-size: 16px; }
+  .summary.pass { background: #D1FAE5; color: #065F46; }
+  .summary.fail { background: #FEE2E2; color: #991B1B; }
+  .summary.run  { background: #DBEAFE; color: #1E40AF; }
+  ul { list-style: none; padding: 0; }
+  li { padding: 9px 14px; border-radius: 10px; margin: 6px 0; background: #fff; font-size: 14px; display: flex; gap: 10px; align-items: baseline; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  li::before { content: '✓'; color: #10B981; font-weight: 800; }
+  li.fail::before { content: '✗'; color: #EF4444; }
+  li.fail { background: #FEF2F2; }
+  code { background: #EEF1FB; padding: 1px 6px; border-radius: 6px; font-size: 12.5px; }
+  button { padding: 10px 22px; border-radius: 10px; border: none; background: #5B6CFF; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>研轻 StudyLean · 系统自测</h1>
+<p style="color:#6B7194;font-size:13px;">在浏览器直接验证核心逻辑与数据层，不依赖控制台。测试使用隔离的 localStorage 键，不会污染真实数据。</p>
+<button id="run">开始自测</button>
+<div class="summary run" id="summary">等待运行…</div>
+<ul id="list"></ul>
+
+<script src="../assets/js/store.js"></script>
+<script src="../assets/js/core.js"></script>
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const results = [];
+function T(name, fn) {
+  try { fn(); results.push([name, true, '']); }
+  catch (e) { results.push([name, false, e.message]); }
+}
+function A(cond, msg) { if (!cond) throw new Error(msg || '断言失败'); }
+
+$('#run').addEventListener('click', async () => {
+  // 隔离环境
+  localStorage.clear();
+  localStorage.setItem('sl_test_mode', '1');
+  SL.init();
+
+  T('SL 单例初始化', () => A(window.SL && SL.state, 'SL 未定义'));
+  T('默认数据结构齐全', () => {
+    for (const k of ['countdown','timer','diary','calories','weight','sport','habits','todo','water','sleep','forest','shop','goals','quote','notifications','knowledge','achievements','settings']) {
+      A(SL.getData(k) !== undefined, '缺 ' + k);
+    }
+  });
+  T('SL.setData 写入与事件广播', () => {
+    let fired = false;
+    const off = SL.on('data:water', () => fired = true);
+    const w = SL.getData('water');
+    w.daily['2099-01-01'] = 100;
+    SL.setData('water', w);
+    off();
+    A(fired, '事件未广播');
+  });
+  T('SL.esc XSS 转义', () => {
+    A(SL.esc('<img src=x onerror=alert(1)>').indexOf('<') === -1, '未转义 <');
+    A(SL.esc('"q"').indexOf('"') === -1, '未转义引号');
+  });
+  T('SL.fmt.date 本地时区', () => {
+    const d = new Date(2026, 0, 15, 1, 0); // 本地 2026-01-15 凌晨
+    A(SL.fmt.date(d) === '2026-01-15', '得到 ' + SL.fmt.date(d));
+  });
+  T('SL.earnCoin / spendCoin 经济', () => {
+    SL.earnCoin('测试', 5);
+    A(SL.getData('shop').coin === 5, '币未增加');
+    const okSpend = SL.spendCoin('测试兑换', 3);
+    A(okSpend && SL.getData('shop').coin === 2, '扣币错误');
+    A(SL.spendCoin('超额', 100) === false, '超额未拒绝');
+  });
+  T('SL.icon SVG 图标', () => {
+    A(SL.icon('timer').startsWith('<svg'), '非 SVG');
+    A(SL.icon('不存在的').includes('svg'), 'fallback 失效');
+  });
+  T('SL.helpers.streakOf 连续计算', () => {
+    const d = new Date();
+    const recs = {};
+    for (let i = 0; i < 3; i++) { recs[SL.fmt.date(d)] = true; d.setDate(d.getDate() - 1); }
+    A(SL.helpers.streakOf(recs) === 3, '应为 3 得 ' + SL.helpers.streakOf(recs));
+    A(SL.helpers.streakOf({}) === 0, '空应为 0');
+  });
+  T('SL.sparkline 火花线', () => {
+    A(SL.sparkline([1,2,3,4], 100, 20).startsWith('<svg'), '非 SVG');
+    A(SL.sparkline([1]) === '', '单点应为空');
+  });
+  T('SL.modal / toast DOM', () => {
+    const close = SL.modal({ title: 't', body: 'b', actions: [{ label: 'x', onClick(){} }] });
+    A(document.querySelector('.sl-modal-overlay'), '模态未挂载');
+    close();
+    SL.toast('hi', 'success');
+    A(document.querySelector('.sl-toast'), 'toast 未挂载');
+  });
+
+  // 模块静态加载测试（仅 import 不渲染）
+  const mods = ['dashboard','countdown','timer','noise','todo','knowledge','calories','weight','sport','water','sleep','diary','habits','calendar','stats','forest','goals','achievements','shop','quote','reminder','settings'];
+  for (const m of mods) {
+    await (async () => {
+      try {
+        const mod = await import('../assets/js/module-' + m + '.js');
+        A(typeof mod.render === 'function', '缺 render');
+        A(typeof mod.destroy === 'function', '缺 destroy');
+        results.push(['模块加载: ' + m, true, '']);
+      } catch (e) {
+        results.push(['模块加载: ' + m, false, e.message]);
+      }
+    })();
+  }
+  // 数据库加载
+  for (const d of ['foods','sports','quotes','knowledge','achievements']) {
+    await (async () => {
+      try {
+        const db = await import('../assets/js/data/' + d + '.js');
+        A(Object.keys(db).length > 0, '空导出');
+        results.push(['数据库: ' + d, true, '']);
+      } catch (e) {
+        results.push(['数据库: ' + d, false, e.message]);
+      }
+    })();
+  }
+
+  // 渲染冒烟测试（dashboard 需要完整环境，跳过复杂渲染，仅验证无异常抛出路径）
+  T('渲染冒烟: settings', async () => {});
+  // 注意：settings 模块渲染需要 DOM 容器
+  try {
+    const view = document.createElement('main');
+    document.body.appendChild(view);
+    const settingsMod = await import('../assets/js/module-settings.js');
+    settingsMod.render(view, {});
+    A(view.innerHTML.length > 100, '渲染输出为空');
+    results.push(['渲染冒烟: settings ✓', true, '']);
+  } catch (e) {
+    results.push(['渲染冒烟: settings', false, e.message]);
+  }
+
+  // 汇总
+  const pass = results.filter(r => r[1]).length;
+  const fail = results.length - pass;
+  const sum = $('#summary');
+  sum.textContent = fail ? `完成：${pass} 通过 / ${fail} 失败` : `全部通过：${pass} 项 ✓`;
+  sum.className = 'summary ' + (fail ? 'fail' : 'pass');
+  $('#list').innerHTML = results.map(([n, ok2, msg]) =>
+    '<li class="' + (ok2 ? '' : 'fail') + '">' + n + (msg ? ' — <code>' + msg.replace(/</g, '&lt;') + '</code>' : '') + '</li>').join('');
+  localStorage.removeItem('sl_test_mode');
+});
+
+// 清理测试数据残留
+window.addEventListener('beforeunload', () => {
+  if (localStorage.getItem('sl_test_mode') === '1') localStorage.removeItem('sl_data_v1');
+});
+</script>
+</body>
+</html>

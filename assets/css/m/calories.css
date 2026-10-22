@@ -1,0 +1,284 @@
+/* == module:calories (SA-12) == */
+
+/* ===== 工具条 ===== */
+.cal-toolbar {
+  display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+}
+
+/* ===== 顶部统计条 ===== */
+.cal-stat {
+  display: flex; align-items: center; gap: 24px; margin-bottom: 16px;
+}
+.cal-ring {
+  position: relative; flex-shrink: 0;
+}
+.cal-ring__label {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.cal-ring__label strong {
+  font-size: 26px; line-height: 1.1; color: var(--fg);
+}
+.cal-ring__label span {
+  font-size: 11.5px; color: var(--fg-muted); margin-top: 2px;
+}
+.cal-stat__right {
+  flex: 1; min-width: 0;
+}
+.cal-stat__title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 4px;
+}
+.cal-hint {
+  font-size: 12px; color: var(--fg-muted); display: block; margin-bottom: 10px;
+}
+.cal-hint strong { color: var(--accent); }
+.cal-hint--over { color: var(--danger); }
+
+.cal-macro { margin-bottom: 8px; }
+.cal-macro:last-child { margin-bottom: 0; }
+.cal-macro__head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; color: var(--fg-muted); margin-bottom: 4px;
+}
+.cal-macro__num {
+  font-variant-numeric: tabular-nums; font-size: 11.5px;
+}
+.cal-macro .progress-bar { height: 6px; }
+
+/* ===== 趋势卡 ===== */
+.cal-trend { margin-bottom: 16px; }
+.cal-trend__head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 8px; flex-wrap: wrap; gap: 6px;
+}
+.cal-trend__title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 600; color: var(--fg);
+}
+.cal-trend__avg { font-size: 12px; color: var(--fg-muted); }
+.cal-trend__avg strong { color: var(--accent); font-size: 14px; }
+.cal-trend__body { min-height: 44px; display: flex; align-items: center; }
+.cal-trend__days {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 四餐分区 ===== */
+.cal-meal-grid {
+  display: grid;
+  /* 320px 列在 <368px 视口会溢出，提前降为 280px，更窄强制单列 */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+@media (max-width: 400px) {
+  .cal-meal-grid { grid-template-columns: 1fr; }
+}
+.cal-meal__head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  color: var(--accent);
+}
+.cal-meal__name {
+  font-size: 14px; font-weight: 600; color: var(--fg); flex: 1;
+}
+.cal-meal__sub {
+  font-size: 12px; color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cal-entry-list {
+  list-style: none; margin: 0 0 8px; padding: 0;
+}
+.cal-entry {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 10px;
+  transition: background var(--tr-fast);
+}
+.cal-entry:hover { background: var(--accent-soft); }
+.cal-entry__info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.cal-entry__name {
+  font-size: 13px; color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-entry__gram {
+  font-size: 11.5px; color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cal-entry__kcal {
+  font-size: 12.5px; font-weight: 600; color: var(--accent);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.cal-entry .btn--sm { opacity: 0.55; flex-shrink: 0; }
+.cal-entry:hover .btn--sm { opacity: 1; }
+.cal-meal__empty {
+  font-size: 12px; color: var(--fg-muted);
+  padding: 8px 2px 12px;
+}
+.cal-meal__add { width: 100%; justify-content: center; }
+
+/* ===== 记一笔模态 ===== */
+.cal-m-meals {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+}
+.cal-m-meal {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  height: 38px; border-radius: 10px; font-size: 13px;
+  border: 1.5px solid var(--border); background: transparent; color: var(--fg-muted);
+  cursor: pointer;
+  transition: all var(--tr-fast);
+}
+.cal-m-meal:hover { border-color: var(--accent); color: var(--accent); }
+.cal-m-meal.is-on {
+  border-color: var(--accent); background: var(--accent-soft); color: var(--accent);
+  font-weight: 600;
+}
+.cal-m-search {
+  position: relative; display: flex; align-items: center; margin-bottom: 8px;
+}
+.cal-m-search .icon {
+  position: absolute; left: 12px; color: var(--fg-muted); pointer-events: none;
+}
+.cal-m-search .input { padding-left: 36px; width: 100%; }
+.cal-m-hint {
+  font-size: 12px; color: var(--warning);
+  padding: 6px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  margin-bottom: 8px;
+}
+.cal-m-results {
+  max-height: 240px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 12px;
+}
+.cal-m-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; cursor: pointer; font-size: 13px;
+  transition: background var(--tr-fast);
+}
+.cal-m-item + .cal-m-item { border-top: 1px solid var(--border); }
+.cal-m-item:hover { background: var(--accent-soft); }
+.cal-m-item__name {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-m-item__kcal {
+  font-size: 11.5px; color: var(--fg-muted); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cal-m-badge { font-size: 11.5px; padding: 1px 7px; flex-shrink: 0; }
+.cal-m-loading {
+  padding: 22px 12px; text-align: center;
+  font-size: 12.5px; color: var(--fg-muted);
+}
+
+/* 健康度红黄绿点 */
+.cal-hdot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; flex-shrink: 0;
+}
+
+/* 选中食物详情 */
+.cal-m-detail { margin-top: 4px; }
+.cal-m-detail__head {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+  font-size: 14px; color: var(--fg);
+}
+.cal-m-detail__head .btn--sm { margin-left: auto; }
+.cal-m-nut {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  font-size: 12px; color: var(--fg-muted);
+  padding: 8px 10px; border-radius: 10px; background: var(--accent-soft);
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-m-gram {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.cal-m-gram label {
+  font-size: 12.5px; color: var(--fg-muted); white-space: nowrap;
+}
+.cal-m-gram .input { width: 110px; }
+.cal-m-preview {
+  font-size: 12px; color: var(--fg-muted); margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-m-preview strong { color: var(--accent); font-size: 14px; }
+.cal-m-confirm { width: 100%; justify-content: center; }
+
+/* ===== 自定义食物表单 ===== */
+.cal-c-row {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 640px) {
+  .cal-stat { flex-direction: column; text-align: center; }
+  .cal-stat__title { justify-content: center; }
+  .cal-meal-grid { grid-template-columns: 1fr; }
+  .cal-m-meals { grid-template-columns: repeat(2, 1fr); }
+  .cal-c-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================================
+   BE-03 界面美化（仅 CSS，不改逻辑）
+   ============================================================ */
+
+/* 1. 健康等级点（绿黄红）发光：伪元素继承内联背景色 + 模糊成同色光晕 */
+.cal-hdot { position: relative; }
+.cal-hdot::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: inherit;               /* 继承 JS 内联写入的等级色 */
+  filter: blur(3px); opacity: 0.55;
+  pointer-events: none;
+}
+
+/* 2. 四餐分区标题左侧 8px 色条：早=晨光黄 / 午=活力橙 / 晚=暮紫 / 加餐=青 */
+.cal-meal__head { position: relative; padding-left: 16px; }
+.cal-meal__head::before {
+  content: ''; position: absolute; left: 0; top: 1px; bottom: 1px;
+  width: 8px; border-radius: 4px;
+}
+.cal-meal-grid > .card:nth-child(1) .cal-meal__head::before { background: #FBBF24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.5); }
+.cal-meal-grid > .card:nth-child(2) .cal-meal__head::before { background: #F97316; box-shadow: 0 0 6px rgba(249, 115, 22, 0.5); }
+.cal-meal-grid > .card:nth-child(3) .cal-meal__head::before { background: #A855F7; box-shadow: 0 0 6px rgba(168, 85, 247, 0.5); }
+.cal-meal-grid > .card:nth-child(4) .cal-meal__head::before { background: #14B8A6; box-shadow: 0 0 6px rgba(20, 184, 166, 0.5); }
+
+/* 3. 摄入环数字 pulse-soft（达标时；超预算时 JS 给 ring-value 写内联 stroke，据此排除） */
+.cal-stat:has(.ring-value:not([style])) .cal-ring__label strong {
+  animation: pulseSoft 2s ease-in-out infinite;
+}
+
+/* 4. 营养素横条条纹填充（45deg 淡白条纹，叠加在内联营养素色之上） */
+.cal-macro .bar-fill { position: relative; overflow: hidden; }
+.cal-macro .bar-fill::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: repeating-linear-gradient(45deg,
+    rgba(255, 255, 255, 0.32) 0 4px,
+    transparent 4px 9px);
+  pointer-events: none;
+}
+
+/* 5. 空状态插画呼吸浮动（统一规格：±4px / 3s） */
+.empty-state svg { animation: cal-breathe 3s ease-in-out infinite; }
+@keyframes cal-breathe {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* 深色模式：暗底上光晕/色条色彩本身为中高亮度可保持，仅降低条纹强度 */
+html[data-theme="dark"] .cal-macro .bar-fill::after {
+  background: repeating-linear-gradient(45deg,
+    rgba(255, 255, 255, 0.22) 0 4px,
+    transparent 4px 9px);
+}
+
+/* 动画减弱偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .cal-hdot::after { display: none; }
+  .cal-stat:has(.ring-value:not([style])) .cal-ring__label strong,
+  .empty-state svg { animation: none; }
+}

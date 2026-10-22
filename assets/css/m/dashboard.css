@@ -1,0 +1,226 @@
+/* == module:dashboard == */
+
+.view-header h1 { font-size: 21px; }
+
+.dash-card { display: flex; flex-direction: column; }
+.dash-card__head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; font-size: 13.5px;
+}
+.dash-card__head b { flex: 1; }
+.dash-card__icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--accent-soft); color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.dash-big { font-size: 34px; font-weight: 800; line-height: 1.1; margin: 2px 0; }
+.dash-big__unit { font-size: 13px; color: var(--fg-muted); font-weight: 500; margin-left: 6px; }
+
+/* 倒计时卡 */
+.dash-card--exam {
+  background: linear-gradient(135deg, var(--bg-card) 55%, var(--accent-soft));
+}
+.dash-cd { display: flex; gap: 8px; }
+.dash-cd__cell {
+  flex: 1; text-align: center;
+  background: var(--bg-inset); border-radius: 12px; padding: 10px 4px 8px;
+}
+.dash-cd__cell b { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
+.dash-cd__cell span { font-size: 11.5px; color: var(--fg-muted); }
+
+/* 卡路里环 */
+.dash-ring svg text { font-family: inherit; }
+
+/* 习惯打卡行 */
+.dash-habits { display: flex; flex-direction: column; gap: 7px; }
+.dash-habit {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-inset); border: 1.5px solid transparent;
+  border-radius: 10px; padding: 8px 10px;
+  font-size: 13.5px; color: var(--fg);
+  transition: all var(--tr-fast); text-align: left; width: 100%;
+}
+.dash-habit:hover { border-color: var(--accent); transform: translateX(2px); }
+.dash-habit__mark {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: transparent; flex-shrink: 0;
+  transition: all var(--tr-mid);
+}
+.dash-habit.is-on { border-color: var(--success); background: rgba(16, 185, 129, 0.08); }
+.dash-habit.is-on .dash-habit__mark {
+  background: var(--success); border-color: var(--success); color: #fff;
+  transform: scale(1.08);
+}
+
+/* 语录卡 */
+.dash-card--quote { position: relative; }
+.dash-quote-mark { color: var(--accent); opacity: 0.35; margin-bottom: 4px; }
+.dash-quote-text { font-size: 15px; font-weight: 600; min-height: 48px; }
+
+/* 自律币卡 */
+.dash-card--coin .dash-big { color: var(--warning); }
+
+/* 今日优先 */
+.dash-prio { display: flex; flex-direction: column; gap: 6px; }
+.dash-prio__row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 8px; border-radius: 10px;
+  background: none; border: none; text-align: left; width: 100%;
+  font-size: 13.5px; color: var(--fg);
+  transition: background var(--tr-fast);
+}
+.dash-prio__row:hover { background: var(--bg-inset); }
+.dash-prio__text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-prio__row .tag { flex-shrink: 0; }
+
+/* 快速操作 */
+.dash-quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.dash-quick__btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 8px; border-radius: 14px;
+  background: var(--bg-inset); border: 1px solid transparent;
+  color: var(--fg); font-size: 12.5px;
+  transition: all var(--tr-fast);
+}
+.dash-quick__btn:hover {
+  border-color: var(--accent); color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(var(--accent-raw), 0.18);
+}
+
+/* 小字信息行 */
+.dash-mini {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 12px; color: var(--fg-muted);
+  padding: 4px 0; border-bottom: 1px dashed var(--border);
+}
+.dash-mini:last-child { border-bottom: none; }
+.dash-mini b { color: var(--fg); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* tag 变体兜底（components.css 未定义 --red/--warm/--green，dashboard 等视图引用） */
+.tag--red   { --c: var(--danger); }
+.tag--warm  { --c: var(--warning); }
+.tag--green { --c: var(--success); }
+
+/* 进度条填充兜底（components.css 只定义了 .bar-fill，此处兼容 __fill 写法） */
+.progress-bar > .progress-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 空状态紧凑版 */
+.empty-state--sm { padding: 18px 8px; }
+.empty-state--sm p { font-size: 13px; margin: 8px 0 10px; }
+
+@media (max-width: 767px) {
+  .dash-big { font-size: 28px; }
+  .dash-cd__cell b { font-size: 18px; }
+}
+
+/* ============================================================
+   BE-02 美化层（只加样式，不改上方既有规则语义）
+   ============================================================ */
+
+/* -- 卡片顶部 2px 渐变装饰线（accent → accent-2，opacity 0.6） -- */
+.dash-card { position: relative; overflow: hidden; }
+.dash-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* -- 统一卡片 hover 阴影节奏：--shadow-1 → --shadow-2 过渡 0.25s -- */
+.dash-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color var(--tr-fast);
+}
+.dash-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+/* -- 倒计时卡数字格：glass 效果 + 秒变化透明度呼吸 pulse -- */
+.dash-cd__cell {
+  background: rgba(var(--accent-raw), 0.06);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(var(--accent-raw), 0.12);
+}
+@keyframes dashCdPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.dash-cd__cell b { animation: dashCdPulse 1s ease-in-out infinite; }
+
+/* -- 习惯打卡圆钮：打卡成功 scale 弹跳（cubic-bezier 弹性） -- */
+@keyframes habitPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.45); }
+  60% { transform: scale(0.9); }
+  80% { transform: scale(1.12); }
+  100% { transform: scale(1.08); }
+}
+.dash-habit.is-on .dash-habit__mark {
+  animation: habitPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* -- 今日优先行：hover 左移箭头动效（chevronR 在文本之后） -- */
+.dash-prio__row { transition: background var(--tr-fast), transform var(--tr-fast); }
+.dash-prio__row svg { transition: transform var(--tr-fast); }
+.dash-prio__row:hover svg {
+  transform: translateX(-4px);
+}
+
+/* -- 快速操作按钮：按下波纹（伪元素 ripple） -- */
+.dash-quick__btn { position: relative; overflow: hidden; }
+.dash-quick__btn::after {
+  content: '';
+  position: absolute; left: 50%; top: 50%;
+  width: 0; height: 0;
+  border-radius: 50%;
+  background: rgba(var(--accent-raw), 0.25);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+.dash-quick__btn:active::after {
+  animation: quickRipple 0.5s ease-out;
+}
+@keyframes quickRipple {
+  0% { width: 0; height: 0; opacity: 0.6; }
+  100% { width: 220%; height: 220%; opacity: 0; }
+}
+
+/* -- 375px 以下卡片区 gap 收缩至 12px（卡片行由内联 style 定义 gap:16px） -- */
+@media (max-width: 375px) {
+  .grid.stagger[style*="gap:16px"],
+  .grid.stagger[style*="gap: 16px"] {
+    gap: 12px !important;
+  }
+}
+
+/* -- 深色模式可读性兜底：数字格描边用令牌变量，无需硬编码；
+      glass 边框在深色下自动跟随 accent-raw 透明度，可读 -- */
+
+/* -- prefers-reduced-motion：关闭装饰动画 -- */
+@media (prefers-reduced-motion: reduce) {
+  .dash-cd__cell b,
+  .dash-habit.is-on .dash-habit__mark,
+  .dash-quick__btn:active::after {
+    animation: none;
+  }
+  .dash-card,
+  .dash-prio__row,
+  .dash-prio__row svg,
+  .dash-quick__btn {
+    transition: none;
+  }
+}

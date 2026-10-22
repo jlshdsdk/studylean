@@ -1,0 +1,136 @@
+/* == module:countdown == */
+
+.cd-grid {
+  display: grid;
+  /* 375px 视口下 340px 会溢出：改用 minmax(0,1fr) + 窄屏单列 */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 400px) {
+  .cd-grid { grid-template-columns: 1fr; }
+}
+
+.cd-card { position: relative; overflow: hidden; }
+.cd-card--urgent { border: 1px solid rgba(239, 68, 68, 0.35); }
+.cd-card--urgent::before {
+  content: '';
+  position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, #EF4444, #F59E0B);
+}
+.cd-card--archived { opacity: 0.72; }
+
+.cd-card__head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.cd-card__badge {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.cd-card__title { flex: 1; min-width: 0; }
+.cd-card__title b { display: block; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity var(--tr-fast); }
+.cd-card:hover .row-actions { opacity: 1; }
+@media (hover: none) { .row-actions { opacity: 1; } }
+
+/* 数字格 */
+.cd-cells { display: flex; gap: 8px; }
+.cd-cell {
+  flex: 1; text-align: center;
+  background: var(--bg-inset); border-radius: 12px; padding: 12px 4px 9px;
+}
+.cd-cell b {
+  display: block; font-size: 26px; font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.cd-cell--sm b { font-size: 20px; color: var(--fg); }
+.cd-cell span { font-size: 11.5px; color: var(--fg-muted); }
+.cd-card--urgent .cd-cell b { color: #EF4444; }
+
+.cd-card__foot {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; margin-top: 8px;
+}
+
+/* 进度条填充兜底（components.css 只定义了 .bar-fill，此处兼容 __fill 写法） */
+.progress-bar > .progress-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 移动端：卡片单列、操作按钮换行，防 375px 横向溢出 */
+@media (max-width: 767px) {
+  .cd-grid { grid-template-columns: 1fr; }
+  .cd-card__head { flex-wrap: wrap; }
+  .cd-card__head .row-actions { flex-wrap: wrap; }
+}
+
+/* 颜色选择器 */
+.cd-colors { display: flex; gap: 8px; }
+.cd-color {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2.5px solid transparent; outline: 1px solid var(--border);
+  transition: transform var(--tr-fast);
+}
+.cd-color:hover { transform: scale(1.15); }
+.cd-color.is-on { border-color: var(--bg-card); outline: 2.5px solid var(--fg); transform: scale(1.12); }
+
+/* ============================================================
+   BE-02 美化层（只加样式，不改上方既有规则语义）
+   ============================================================ */
+
+/* -- 紧急卡片：呼吸红色描边（opacity 0.35 ↔ 0.6，3s loop）
+      通过叠加 outline 动画实现，不改原 border 语义 -- */
+@keyframes cdUrgentBreath {
+  0%, 100% { outline-color: rgba(239, 68, 68, 0.35); }
+  50% { outline-color: rgba(239, 68, 68, 0.6); }
+}
+.cd-card--urgent {
+  outline: 1px solid rgba(239, 68, 68, 0.35);
+  outline-offset: -1px;
+  animation: cdUrgentBreath 3s ease-in-out infinite;
+}
+
+/* -- 数字格 hover 抬升 + 统一卡片 hover 阴影节奏 -- */
+.cd-cell {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.cd-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-1);
+}
+.cd-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color var(--tr-fast);
+}
+.cd-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+/* -- 归档卡：saturate(0.6) -- */
+.cd-card--archived {
+  filter: saturate(0.6);
+}
+
+/* -- 进度条：流动渐变填充（background-size 200% + shimmer，8s） -- */
+.cd-card .progress-bar__fill,
+.cd-card .progress-bar > .bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
+  background-size: 200% 100%;
+  animation: cdFillShimmer 8s linear infinite;
+}
+@keyframes cdFillShimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* -- prefers-reduced-motion：关闭装饰动画 -- */
+@media (prefers-reduced-motion: reduce) {
+  .cd-card--urgent { animation: none; }
+  .cd-card .progress-bar__fill,
+  .cd-card .progress-bar > .bar-fill { animation: none; }
+  .cd-cell,
+  .cd-card { transition: none; }
+}

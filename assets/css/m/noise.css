@@ -1,0 +1,106 @@
+/* == module:noise == */
+
+.nz-master {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.nz-master__icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--accent-soft); color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.nz-range {
+  -webkit-appearance: none; appearance: none;
+  width: 130px; height: 5px; border-radius: 4px;
+  background: var(--border); outline: none; cursor: pointer;
+}
+.nz-range:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px;
+}
+.nz-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); border: 2.5px solid var(--bg-card);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+.nz-range::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); border: 2.5px solid var(--bg-card);
+  cursor: grab;
+}
+
+.nz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.nz-card {
+  text-align: center; cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all var(--tr-fast);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 18px 12px 14px;
+}
+.nz-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.nz-card.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.nz-card__icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--bg-inset); color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all var(--tr-mid);
+}
+.nz-card.is-on .nz-card__icon {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 0 0 8px rgba(var(--accent-raw), 0.12);
+  animation: nzPulse 2.4s ease-in-out infinite;
+}
+@keyframes nzPulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(var(--accent-raw), 0.10); }
+  50% { box-shadow: 0 0 0 12px rgba(var(--accent-raw), 0.05); }
+}
+.nz-card__hint { font-size: 11.5px; }
+.nz-card .nz-vol { margin-top: 4px; width: 90%; }
+
+@media (max-width: 767px) {
+  .nz-range { width: 100px; }
+}
+
+/* ===== BE-05 美化：播放中音波可视化条（仅 is-on 显示） ===== */
+
+/* 卡片右上角伪元素：4 根音波条（box-shadow 复制），随节拍交替伸缩 */
+.nz-card { position: relative; overflow: hidden; }
+.nz-card::after {
+  content: '';
+  display: none;
+  position: absolute;
+  top: 12px; right: 14px;
+  width: 4px; height: 6px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.85;
+  pointer-events: none;
+  /* 用多重 box-shadow 生成另外 3 根条：偏移 6px 一根 */
+  box-shadow:
+    6px 2px 0 0 var(--accent),
+    12px -1px 0 0 var(--accent),
+    18px 1px 0 0 var(--accent);
+  animation: nz-eq 0.9s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.nz-card.is-on::after { display: block; }
+@keyframes nz-eq {
+  0%, 100% { height: 5px; transform: translateY(0); }
+  30% { height: 13px; transform: translateY(-3px); }
+  60% { height: 7px; transform: translateY(-1px); }
+}
+/* 播放中卡片标签强调 */
+.nz-card.is-on .nz-card__hint { color: var(--accent); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nz-card.is-on::after { animation: none; height: 9px; }
+  .nz-card.is-on .nz-card__icon { animation: none; }
+}

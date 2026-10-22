@@ -1,0 +1,78 @@
+/* == module:quote == */
+
+.q-main-card { position: relative; overflow: hidden; text-align: center; padding: 36px 28px 26px; }
+.q-main-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, var(--accent-soft), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(255, 122, 182, 0.08), transparent 45%);
+  pointer-events: none;
+}
+.q-tag { position: absolute; top: 14px; left: 14px; }
+.q-mark { color: var(--accent); opacity: 0.3; margin-bottom: 10px; }
+.q-text {
+  position: relative;
+  font-size: 19px; font-weight: 600; line-height: 1.8;
+  max-width: 560px; margin: 0 auto 14px;
+}
+.q-by { position: relative; font-size: 13px; }
+.q-actions {
+  position: relative;
+  display: flex; gap: 10px; justify-content: center;
+  margin-top: 20px; flex-wrap: wrap;
+}
+
+.q-favs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.q-fav-card { padding: 16px; font-size: 13.5px; }
+
+/* ===== BE-05 美化：引号旋转入场 / 收藏心形 pop / 可选打字机 ===== */
+
+/* 大卡引号图标：旋转 + 缩放入场 */
+.q-mark {
+  display: inline-flex;
+  animation: q-mark-spin 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+  transform-origin: 50% 60%;
+}
+@keyframes q-mark-spin {
+  0% { transform: rotate(-160deg) scale(0.3); opacity: 0; }
+  70% { transform: rotate(12deg) scale(1.08); opacity: 1; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+/* 收藏按钮：心形 pop（scale 1.3 回弹），针对按钮内 heart 图标 */
+#qFav svg { transition: transform 0.25s cubic-bezier(0.34, 1.7, 0.64, 1); }
+#qFav:active svg { transform: scale(1.3); }
+#qFav.btn--primary svg { animation: q-heart-pop 0.45s cubic-bezier(0.34, 1.7, 0.64, 1); }
+@keyframes q-heart-pop {
+  0% { transform: scale(0.6); }
+  45% { transform: scale(1.3); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+/* 可选打字机（不强加）：渲染方为 .q-text 附加 .typewriter 且设置 --char-count 即生效 */
+.q-text.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--accent);
+  width: 0;
+  animation: q-type steps(var(--char-count, 30), end) 2.2s forwards,
+             q-caret 0.8s step-end infinite;
+}
+@keyframes q-type { to { width: 100%; } }
+@keyframes q-caret { 50% { border-color: transparent; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .q-mark, #qFav.btn--primary svg { animation: none; }
+  #qFav svg { transition: none; }
+  .q-text.typewriter {
+    animation: none;
+    width: auto; overflow: visible; white-space: normal;
+    border-right: none;
+  }
+}

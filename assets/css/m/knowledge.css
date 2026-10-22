@@ -1,0 +1,45 @@
+/* == module:knowledge == */
+
+.kn-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.kn-pick {
+  cursor: pointer; position: relative;
+  background: linear-gradient(135deg, var(--bg-card), var(--accent-soft));
+  transition: transform var(--tr-fast);
+}
+.kn-pick:hover { transform: translateY(-3px); }
+.kn-pick .tag { position: absolute; top: 12px; right: 12px; }
+.kn-pick b { display: block; padding-right: 48px; font-size: 14.5px; }
+
+.kn-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+.kn-cat { cursor: pointer; border: none; font-size: 12.5px; padding: 6px 12px; }
+.kn-cat.is-on { background: var(--accent); color: #fff; }
+
+.kn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.kn-card { cursor: pointer; transition: transform var(--tr-fast); }
+.kn-card:hover { transform: translateY(-3px); }
+.kn-card__head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kn-card__cat {
+  font-size: 11.5px; color: var(--accent);
+  background: var(--accent-soft); padding: 2px 8px; border-radius: 12px;
+}
+.kn-card__read {
+  font-size: 11.5px; color: var(--success);
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.kn-card.is-read { opacity: 0.75; }
+.kn-card__title { display: block; font-size: 14.5px; margin-bottom: 6px; }
+.kn-card__excerpt { font-size: 12px; color: var(--fg-muted); margin: 0; }
+
+/* 模态里的标签 */
+.tag--hot { background: rgba(245, 158, 11, 0.15); color: var(--warning); }

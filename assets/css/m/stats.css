@@ -1,0 +1,210 @@
+/* == module:stats == */
+
+.stats-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+
+/* 分段切换 */
+.seg {
+  display: inline-flex; padding: 3px;
+  background: var(--bg-inset); border-radius: 10px;
+}
+.seg__btn {
+  border: 0; background: transparent; cursor: pointer;
+  padding: 6px 16px; border-radius: 8px;
+  font-size: 13px; color: var(--fg-muted);
+  transition: all var(--tr-fast);
+}
+.seg__btn:hover { color: var(--fg); }
+.seg__btn.is-on {
+  background: var(--bg-card); color: var(--accent);
+  font-weight: 600; box-shadow: var(--shadow-1);
+}
+
+/* 汇总报表卡 */
+.stats-report {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stats-cell { padding: 14px 16px; }
+.stats-cell__top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.stats-cell__value {
+  font-size: 20px; font-weight: 700; color: var(--fg);
+  margin-bottom: 2px;
+}
+
+/* 卡片头 */
+.stats-card { margin-bottom: 16px; position: relative; }
+.stats-card__head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px; font-size: 14.5px;
+}
+.stats-card__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px;
+  background: var(--accent-soft); color: var(--accent);
+  flex: none;
+}
+.stats-card.is-focus { animation: statsFocusPulse 1.6s var(--tr-mid); }
+@keyframes statsFocusPulse {
+  0%, 100% { box-shadow: var(--shadow-1); }
+  30% { box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-2); }
+}
+
+.stats-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 767px) {
+  .stats-grid2 { grid-template-columns: 1fr; }
+}
+
+/* ===== 热力图 ===== */
+.stats-heat-scroll { overflow-x: auto; padding-bottom: 4px; }
+.stats-heat { min-width: 560px; }
+.heat-months { display: flex; margin-left: 25px; margin-bottom: 4px; }
+.heat-month {
+  font-size: 11.5px; color: var(--fg-muted);
+  overflow: hidden; white-space: nowrap; flex: none;
+}
+.heat-body { display: flex; gap: 3px; }
+.heat-wdlabels {
+  display: grid; grid-template-rows: repeat(7, 15px); gap: 3px;
+  width: 22px; flex: none;
+}
+.heat-wdlabel {
+  font-size: 11.5px; color: var(--fg-muted); line-height: 15px;
+}
+.heat-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 15px);
+  grid-auto-flow: column;
+  grid-auto-columns: 15px;
+  gap: 3px;
+}
+.heat-cell {
+  width: 15px; height: 15px; border-radius: 3.5px;
+  background: var(--bg-inset); flex: none;
+  transition: transform var(--tr-fast);
+}
+.heat-cell:hover { transform: scale(1.25); }
+.heat-lv1 { background: var(--accent); opacity: 0.3; }
+.heat-lv2 { background: var(--accent); opacity: 0.6; }
+.heat-lv3 { background: var(--accent); opacity: 0.95; }
+.heat-cell.is-today { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.stats-heat-legend {
+  display: flex; align-items: center; gap: 4px;
+  justify-content: flex-end; margin-top: 10px;
+}
+.stats-heat-legend .heat-cell { width: 12px; height: 12px; }
+
+.stats-empty-hint {
+  text-align: center; color: var(--fg-muted);
+  padding: 18px 0 6px; font-size: 13px;
+}
+.stats-empty-hint .icon { opacity: 0.5; }
+.stats-empty-hint--overlay {
+  position: absolute; inset: 52px 0 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--bg-card); border-radius: 12px;
+}
+
+/* ===== 折线图 ===== */
+.ln-svg { width: 100%; height: auto; display: block; }
+.ln-grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 4; }
+.ln-tick { font-size: 11.5px; fill: var(--fg-muted); }
+.ln-dot { fill: var(--accent); stroke: var(--bg-card); stroke-width: 1.5; }
+
+/* ===== 环形图 ===== */
+.stats-ring-wrap {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  padding: 4px 0;
+}
+.ring-bg { fill: none; stroke: var(--bg-inset); stroke-width: 12; }
+.ring-fg {
+  fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s var(--tr-mid);
+}
+.ring-num { font-size: 24px; font-weight: 700; fill: var(--fg); }
+.ring-sub { font-size: 11.5px; fill: var(--fg-muted); }
+.stats-ring-side { flex: 1; min-width: 140px; }
+
+@media (max-width: 375px) {
+  .heat-grid, .heat-wdlabels, .heat-cell { gap: 2px; }
+  .heat-cell { width: 13px; height: 13px; }
+}
+
+/* ===== BE-04 美化 ===== */
+
+/* 热力图 4 档颜色深度：accent 的 20/45/70/100%（CSS 变量化，可整段覆盖）
+   注：module-stats.js 的 heatLevel() 只产出 lv0-lv3 四档，与图例一致 */
+.stats-heat {
+  --heat-1: rgba(var(--accent-raw), 0.20);
+  --heat-2: rgba(var(--accent-raw), 0.45);
+  --heat-3: rgba(var(--accent-raw), 0.70);
+  --heat-4: rgb(var(--accent-raw));
+}
+.heat-cell.heat-lv0 { background: var(--heat-1); }
+.heat-cell.heat-lv1 { background: var(--heat-2); opacity: 1; }
+.heat-cell.heat-lv2 { background: var(--heat-3); opacity: 1; }
+.heat-cell.heat-lv3 { background: var(--heat-4); opacity: 1; }
+
+/* 热力图格子 hover：放大 1.3 倍 + accent 描边 */
+.heat-cell {
+  border: 1px solid transparent;
+  transition: transform var(--tr-fast), border-color var(--tr-fast), box-shadow var(--tr-fast);
+}
+.heat-cell:hover {
+  transform: scale(1.3);
+  border-color: var(--accent);
+  box-shadow: 0 0 6px rgba(var(--accent-raw), 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+/* 报表数字卡片：icon 底色圆（圆形底座 + 柔和投影） */
+.stats-card__icon {
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(var(--accent-raw), 0.18);
+}
+.stats-cell__value { letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+
+/* stats 根容器入场（JS 未挂 .stagger，纯 CSS 兜底 stagger）
+   用 fill-mode: backwards + 正常态可见，避免与 .stats-card.is-focus 的
+   动画替换冲突（否则动画被换掉后元素会回到 opacity:0） */
+@keyframes stats-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+#view > .stats-toolbar,
+#view > #stReportCard,
+#view > #stHeatCard,
+#view > .stats-grid2 {
+  animation: stats-rise 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+#view > #stReportCard { animation-delay: 0.03s; }
+#view > #stHeatCard { animation-delay: 0.06s; }
+#view > .stats-grid2:nth-child(4) { animation-delay: 0.09s; }
+#view > .stats-grid2:nth-child(5) { animation-delay: 0.12s; }
+
+/* 折线图：数据点 hover 加粗描边（十字线为 SVG title 提示方案，按指示跳过） */
+.ln-dot { transition: stroke-width 0.15s ease; }
+.ln-dot:hover { stroke-width: 2.5; }
+
+/* BE-04: 减动效兜底（base.css 有全局开关，此处显式还原入场） */
+@media (prefers-reduced-motion: reduce) {
+  #view > .stats-toolbar,
+  #view > #stReportCard,
+  #view > #stHeatCard,
+  #view > .stats-grid2 {
+    animation: none;
+  }
+}

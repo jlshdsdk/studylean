@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#5B6CFF">
+  <meta name="description" content="研轻 StudyLean — 考研×减脂双线自律中枢。倒计时、番茄钟、卡路里、日记、习惯打卡等 24 个模块，全免费，数据本地私有。">
+  <title>研轻 StudyLean — 上岸，也上秤。</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sl-sidebar" id="sidebar">
+      <div class="sl-sidebar__logo">
+        <img src="assets/img/logo.svg" alt="研轻" width="34" height="34">
+        <div>研轻<small>STUDYLEAN</small></div>
+      </div>
+      <nav class="sl-nav" id="nav"></nav>
+      <div class="sl-sidebar__progress" id="sideProgress" title="今日打卡进度"></div>
+      <button class="sl-usercard" id="userCard" type="button"></button>
+    </aside>
+
+    <div class="app-main">
+      <header class="sl-topbar">
+        <div>
+          <h1 class="sl-topbar__title" id="viewTitle">仪表盘</h1>
+          <div class="sl-topbar__date" id="viewDate"></div>
+        </div>
+        <div class="sl-topbar__spacer"></div>
+        <button class="sl-topbar__btn" id="btnSearch" title="搜索日记" type="button" aria-label="搜索日记"></button>
+        <button class="sl-topbar__btn" id="btnBell" title="提醒中心" type="button" aria-label="提醒"></button>
+        <button class="sl-topbar__btn" id="btnTheme" title="切换主题" type="button" aria-label="切换主题"></button>
+        <button class="sl-topbar__btn" id="btnUser" title="账号" type="button" aria-label="账号"></button>
+      </header>
+      <main class="sl-view" id="view" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <!-- 移动端底部 Tab -->
+  <nav class="sl-mobile-tab" id="mobileTab"></nav>
+
+  <!-- 移动端全屏抽屉 -->
+  <div class="sl-drawer" id="drawer">
+    <div class="sl-drawer__mask" id="drawerMask"></div>
+    <div class="sl-drawer__panel" id="drawerPanel"></div>
+  </div>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

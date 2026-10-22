@@ -1,0 +1,102 @@
+/* == module:goals == */
+
+.gl-grid {
+  display: grid;
+  /* 320px + 容器内边距在 375px 视口会溢出，窄屏强制单列 */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+@media (max-width: 400px) {
+  .gl-grid { grid-template-columns: 1fr; }
+}
+
+.gl-card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.gl-card__icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--accent-soft); color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.gl-card__name { font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-card .row-actions { opacity: 0; }
+.gl-card:hover .row-actions { opacity: 1; }
+
+.gl-card--done { border: 1px solid rgba(16, 185, 129, 0.4); }
+
+.gl-card__nums {
+  display: flex; align-items: baseline; gap: 8px;
+  margin-bottom: 8px;
+}
+.gl-cur { font-size: 26px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.gl-quick {
+  display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap;
+}
+.gl-quick__input { width: 84px; height: 32px; font-size: 12.5px; padding: 0 8px; }
+.gl-quick .btn { padding: 4px 10px; font-size: 12px; }
+
+.gl-ms { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.gl-ms__item {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0 6px 6px 0; padding: 5px 10px;
+  background: var(--bg-inset); border-radius: 18px;
+  border: none; font-size: 12px; color: var(--fg);
+  transition: all var(--tr-fast);
+}
+.gl-ms__item:hover { transform: translateY(-1px); }
+.gl-ms__check {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 0;
+}
+.gl-ms__item.is-done { background: rgba(16, 185, 129, 0.12); text-decoration: line-through; color: var(--fg-muted); }
+.gl-ms__item.is-done .gl-ms__check { background: var(--success); border-color: var(--success); color: #fff; }
+
+/* ===== BE-05 美化：达标进度条星光 / 里程碑弹入 / hover 百分比放大 ===== */
+
+/* 进度条达标（.gl-card--done）：全条 success 渐变 + 星光扫过 */
+.gl-card--done .progress-bar { position: relative; overflow: hidden; }
+.gl-card--done .progress-bar__fill {
+  background: linear-gradient(90deg, var(--success), #34D399 60%, var(--success)) !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+}
+.gl-card--done .progress-bar::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -40%;
+  width: 40%;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.9) 0, transparent 2px),
+    radial-gradient(circle at 55% 30%, rgba(255, 255, 255, 0.75) 0, transparent 1.5px),
+    radial-gradient(circle at 80% 65%, rgba(255, 255, 255, 0.85) 0, transparent 2px),
+    linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: gl-star-sweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes gl-star-sweep {
+  0% { transform: translateX(0); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateX(350%); opacity: 0; }
+}
+
+/* 里程碑勾选：check 圆缩放弹入 */
+.gl-ms__check { transition: transform 0.25s cubic-bezier(0.34, 1.7, 0.64, 1), background var(--tr-fast), border-color var(--tr-fast), color var(--tr-fast); }
+.gl-ms__item.is-done .gl-ms__check { animation: gl-check-in 0.35s cubic-bezier(0.34, 1.7, 0.64, 1); }
+@keyframes gl-check-in {
+  0% { transform: scale(0.3); }
+  60% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* 目标卡 hover：进度百分比数字放大（tag 里的百分数与"已达成"标签） */
+.gl-card .tag { transition: transform var(--tr-fast); transform-origin: 100% 50%; }
+.gl-card:hover .tag { transform: scale(1.15); }
+.gl-card:hover .tag--green { color: var(--success-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-card--done .progress-bar::after { animation: none; opacity: 0; }
+  .gl-ms__item.is-done .gl-ms__check { animation: none; }
+  .gl-card .tag { transition: none; }
+  .gl-card:hover .tag { transform: none; }
+}

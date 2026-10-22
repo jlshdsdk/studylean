@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <!-- 研轻 StudyLean logo：书本 + 体重秤圆环 + 向上箭头 -->
+  <defs>
+    <linearGradient id="slg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B6CFF"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+  <!-- 体重秤圆环（表盘） -->
+  <circle cx="20" cy="20" r="17" fill="none" stroke="url(#slg)" stroke-width="3"/>
+  <!-- 秤刻度（顶部三格） -->
+  <line x1="12" y1="6.5" x2="13.5" y2="10" stroke="#5B6CFF" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="20" y1="5"   x2="20"   y2="9"  stroke="#5B6CFF" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="28" y1="6.5" x2="26.5" y2="10" stroke="#5B6CFF" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- 摊开的书本 -->
+  <path d="M9 27 Q14.5 23.5 20 26.5 Q25.5 23.5 31 27 L31 30 Q25.5 27 20 29.5 Q14.5 27 9 30 Z"
+        fill="#5B6CFF"/>
+  <!-- 向上箭头（成长/减重） -->
+  <path d="M20 24 L14.5 16.5 H17.8 V11.5 H22.2 V16.5 H25.5 Z" fill="url(#slg)"/>
+</svg>

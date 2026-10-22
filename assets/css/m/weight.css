@@ -1,0 +1,245 @@
+/* == module:weight (SA-13) == */
+
+/* 工具栏 */
+.wt-toolbar {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+
+/* 顶部统计卡组 */
+.wt-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.wt-card { min-width: 0; }
+.wt-stat__label {
+  font-size: 12px; color: var(--fg-muted); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 5px;
+}
+.wt-stat__num {
+  font-size: 30px; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums; color: var(--fg);
+}
+.wt-stat__num small { font-size: 14px; font-weight: 600; color: var(--fg-muted); }
+.wt-stat__num--hit { color: var(--success); font-size: 24px; }
+.wt-stat__sub {
+  margin-top: 6px; font-size: 12px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+.wt-delta {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 700;
+  color: var(--fg-muted);
+}
+.wt-delta--up { color: var(--warning-text, #B45309); }
+.wt-delta--down { color: var(--success-text, #047857); }
+
+/* BMI 分类标签 */
+.wt-tag {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 700;
+}
+.wt-tag--thin   { background: rgba(59, 130, 246, 0.14);  color: var(--info-text, #0369A1); }
+.wt-tag--normal { background: rgba(16, 185, 129, 0.14);  color: var(--success-text, #047857); }
+.wt-tag--over   { background: rgba(245, 158, 11, 0.16);  color: var(--warning-text, #B45309); }
+.wt-tag--obese  { background: rgba(239, 68, 68, 0.15);   color: var(--danger-text, #DC2626); }
+html[data-theme="dark"] .wt-tag--thin   { color: #7CB0F9; }
+html[data-theme="dark"] .wt-tag--normal { color: #4ADE80; }
+html[data-theme="dark"] .wt-tag--over   { color: #FBBF24; }
+html[data-theme="dark"] .wt-tag--obese  { color: #F87171; }
+
+/* 趋势图 */
+.wt-chart-card { margin-bottom: 16px; }
+.wt-chart-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 12px;
+}
+.wt-chart-head h3 {
+  margin: 0; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 7px;
+}
+.wt-chart {
+  width: 100%; height: 240px; display: block;
+}
+.wt-chart-grid {
+  stroke: var(--border); stroke-width: 1; stroke-dasharray: 1 0;
+}
+.wt-chart-ylabel {
+  font-size: 11.5px; fill: var(--fg-muted);
+  text-anchor: end; dominant-baseline: middle;
+}
+.wt-chart-xlabel { font-size: 11.5px; fill: var(--fg-muted); text-anchor: middle; }
+.wt-chart-line {
+  fill: none; stroke: var(--accent); stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.wt-chart-area {
+  fill: rgba(var(--accent-raw), 0.10); stroke: none;
+}
+.wt-chart-dot {
+  fill: var(--bg-card); stroke: var(--accent); stroke-width: 2;
+  transition: r var(--tr-fast);
+}
+.wt-chart-dot:hover { r: 5.5; }
+.wt-chart-target {
+  stroke: var(--accent-2); stroke-width: 1.4; stroke-dasharray: 6 5; opacity: 0.8;
+}
+.wt-chart-target-label {
+  font-size: 11.5px; fill: var(--accent-2); font-weight: 600;
+}
+
+/* 下半区两栏 */
+.wt-bottom {
+  display: grid;
+  /* minmax(300px,…) 在 375px 视口溢出（600px+gap），改 fr 弹性并在窄屏单列 */
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .wt-bottom { grid-template-columns: 1fr; }
+}
+
+.wt-panel-title {
+  margin: 0 0 12px; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 7px;
+}
+
+/* 个人资料卡 */
+.wt-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.wt-profile-grid > div {
+  background: var(--bg-inset); border-radius: var(--radius-sm);
+  padding: 9px 10px; display: flex; flex-direction: column; gap: 3px;
+  font-size: 13.5px;
+}
+.wt-profile-grid span { font-size: 11.5px; }
+.wt-profile-grid b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.wt-profile-grid .btn { align-self: start; }
+
+.wt-bmr-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 12px;
+}
+.wt-bmr-cell {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.wt-bmr-cell span { display: block; font-size: 11.5px; color: var(--fg-muted); margin-bottom: 3px; }
+.wt-bmr-cell b { font-size: 19px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.wt-bmr-cell small { font-size: 11.5px; color: var(--fg-muted); font-weight: 500; }
+
+/* 记录列表 */
+.wt-records { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.wt-record {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  transition: transform var(--tr-fast), box-shadow var(--tr-fast);
+}
+.wt-record:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-1);
+}
+.wt-record__date {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--fg-muted);
+  display: flex; align-items: center; gap: 5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wt-record__kg { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.wt-record__kg small { font-size: 11.5px; font-weight: 500; color: var(--fg-muted); }
+.wt-record__del { opacity: 0; transition: opacity var(--tr-fast); }
+.wt-record:hover .wt-record__del { opacity: 1; }
+@media (hover: none) { .wt-record__del { opacity: 1; } }
+
+/* 模态内表单 */
+.wt-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) {
+  .wt-form-grid { grid-template-columns: 1fr; }
+  .wt-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+   BE-03 界面美化（仅 CSS，不改逻辑）
+   ============================================================ */
+
+/* 1. BMI 卡按分类加左侧色条：偏瘦蓝 / 正常绿 / 超重黄 / 肥胖红
+   （#wtBmi 卡内容由 JS 渲染，wt-tag 挂在内层，用 :has 反查上色） */
+#wtBmi { position: relative; overflow: hidden; }
+#wtBmi::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 8px;
+  background: var(--border); opacity: 0.5;
+  transition: background var(--tr-fast), opacity var(--tr-fast), box-shadow var(--tr-fast);
+}
+#wtBmi:has(.wt-tag--thin)::before   { background: #3B82F6; opacity: 1; box-shadow: 0 0 6px rgba(59, 130, 246, 0.55); }
+#wtBmi:has(.wt-tag--normal)::before { background: #10B981; opacity: 1; box-shadow: 0 0 6px rgba(16, 185, 129, 0.55); }
+#wtBmi:has(.wt-tag--over)::before   { background: #F59E0B; opacity: 1; box-shadow: 0 0 6px rgba(245, 158, 11, 0.55); }
+#wtBmi:has(.wt-tag--obese)::before  { background: #EF4444; opacity: 1; box-shadow: 0 0 6px rgba(239, 68, 68, 0.55); }
+
+/* 2. 体重曲线 hover：点放大 + 数值标签背景卡
+   SVG circle 不支持伪元素，用光晕 + 原生 title 提示；现有 r 过渡已存在 */
+.wt-chart-dot { cursor: pointer; }
+.wt-chart-dot:hover {
+  r: 6.5;
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 5px rgba(var(--accent-raw), 0.65));
+}
+
+/* 3. 目标卡完成时撒花色光晕（达成时 JS 写 wt-stat__num--hit） */
+#wtGoal { position: relative; overflow: hidden; }
+#wtGoal:has(.wt-stat__num--hit) {
+  border-color: rgba(16, 185, 129, 0.45);
+  animation: wt-goal-glow 2.4s ease-in-out infinite;
+}
+@keyframes wt-goal-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.18), 0 4px 18px rgba(16, 185, 129, 0.20); }
+  50%      { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.30), 0 8px 30px rgba(16, 185, 129, 0.38); }
+}
+/* 撒花色点缀：达成时蓝/青双色微光点漂动 */
+#wtGoal::before, #wtGoal::after {
+  content: ''; position: absolute; border-radius: 50%; pointer-events: none; opacity: 0;
+}
+#wtGoal:has(.wt-stat__num--hit)::before {
+  width: 10px; height: 10px; left: 14px; top: 12px;
+  background: radial-gradient(circle, #3B82F6 40%, transparent 70%);
+  animation: wt-confetti-a 2.4s ease-in-out infinite;
+}
+#wtGoal:has(.wt-stat__num--hit)::after {
+  width: 8px; height: 8px; right: 16px; bottom: 14px;
+  background: radial-gradient(circle, #2DD4BF 40%, transparent 70%);
+  animation: wt-confetti-b 2.4s ease-in-out infinite;
+}
+@keyframes wt-confetti-a {
+  0%, 100% { opacity: 0.15; transform: translate(0, 0); }
+  50%      { opacity: 0.75; transform: translate(4px, 6px); }
+}
+@keyframes wt-confetti-b {
+  0%, 100% { opacity: 0.2; transform: translate(0, 0) scale(1); }
+  50%      { opacity: 0.8; transform: translate(-4px, -5px) scale(1.25); }
+}
+
+/* 4. 空状态插画呼吸浮动（统一规格：±4px / 3s） */
+.empty-state svg { animation: wt-breathe 3s ease-in-out infinite; }
+@keyframes wt-breathe {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* 深色模式：暗底上色条略提亮 */
+html[data-theme="dark"] #wtBmi::before { opacity: 0.9; }
+
+/* 动画减弱偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .wt-chart-dot:hover { r: 3.5; stroke-width: 2; filter: none; }
+  #wtGoal, #wtGoal::before, #wtGoal::after { animation: none; }
+  #wtGoal:has(.wt-stat__num--hit) { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25); }
+  #wtGoal:has(.wt-stat__num--hit)::before { opacity: 0.5; transform: none; }
+  #wtGoal:has(.wt-stat__num--hit)::after  { opacity: 0.5; transform: none; }
+  .empty-state svg { animation: none; }
+}

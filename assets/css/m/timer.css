@@ -1,0 +1,164 @@
+/* == module:timer == */
+
+.tm-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* 模式 Tab */
+.tm-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+.tm-tab {
+  flex: 1; padding: 8px 4px; border-radius: 10px;
+  background: var(--bg-inset); border: none;
+  font-size: 13px; color: var(--fg-muted);
+  transition: all var(--tr-fast);
+}
+.tm-tab:hover { color: var(--fg); }
+.tm-tab.is-on {
+  background: var(--accent); color: #fff; font-weight: 600;
+  box-shadow: 0 4px 12px rgba(var(--accent-raw), 0.35);
+}
+
+/* 圆环 */
+.tm-ring-wrap { display: flex; justify-content: center; padding: 8px 0 4px; }
+.tm-ring { position: relative; width: 230px; height: 230px; }
+.tm-ring__center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+}
+.tm-clock {
+  font-size: 44px; font-weight: 800; letter-spacing: 1px;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.tm-ring__label { font-size: 12px; color: var(--fg-muted); margin-top: 8px; }
+
+/* 标签输入 */
+.tm-label-input { margin: 16px 0 0; text-align: center; }
+
+/* 控制按钮 */
+.tm-controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+
+.tm-settings {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 18px; font-size: 12px; flex-wrap: wrap; gap: 8px;
+}
+
+/* 侧栏：周概览柱状 */
+.tm-week {
+  display: flex; gap: 8px; align-items: flex-end;
+  height: 90px; padding-top: 6px;
+}
+.tm-week__col {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  height: 100%; justify-content: flex-end; gap: 5px;
+}
+.tm-week__bar {
+  width: 100%; max-width: 26px; min-height: 3px;
+  background: linear-gradient(180deg, var(--accent), rgba(var(--accent-raw), 0.55));
+  border-radius: 6px 6px 2px 2px;
+  transition: height 0.6s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+.tm-week__col span { font-size: 11.5px; color: var(--fg-muted); }
+
+@media (max-width: 900px) {
+  .tm-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+  .tm-ring { width: 190px; height: 190px; }
+  .tm-ring svg { width: 190px; height: 190px; }
+  .tm-clock { font-size: 36px; }
+}
+
+/* ============================================================
+   BE-02 美化层（只加样式，不改上方既有规则语义）
+   ============================================================ */
+
+/* -- 圆环光晕：SVG defs linearGradient 需改 JS，改用
+      drop-shadow(0 0 12px accent-soft) 光晕替代渐变描边 -- */
+.tm-ring svg {
+  filter: drop-shadow(0 0 12px var(--accent-soft));
+}
+
+/* -- 卡片级 hover 阴影节奏统一（--shadow-1 → --shadow-2，0.25s）
+      timer 主卡/侧卡均为 .card，此处仅覆盖过渡时长节奏 -- */
+.tm-layout .card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color var(--tr-fast);
+}
+.tm-layout .card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+/* -- 结束前最后 10 秒红闪（.tm-clock--urgent，JS 判定后挂类即可生效；
+      颜色用 --danger 令牌，深浅色均可读） -- */
+@keyframes tmUrgentFlash {
+  0%, 100% { color: var(--fg); opacity: 1; }
+  50% { color: var(--danger); opacity: 0.7; }
+}
+.tm-clock--urgent {
+  animation: tmUrgentFlash 1s ease-in-out infinite;
+}
+
+/* -- 模式 Tab 激活态底部滑动指示条（伪元素实现，不改 JS 结构） -- */
+.tm-tab { position: relative; overflow: visible; }
+.tm-tab::after {
+  content: '';
+  position: absolute; left: 50%; bottom: 3px;
+  width: 0; height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: translateX(-50%);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+.tm-tab:hover::after { width: 40%; opacity: 0.5; }
+.tm-tab.is-on::after {
+  width: 46%;
+  opacity: 1;
+}
+
+/* -- 本周柱状图：hover 显示数值（从柱体自带 title 属性读取，纯 CSS 气泡）
+      并放大柱体 -- */
+.tm-week__bar {
+  position: relative;
+  cursor: pointer;
+}
+.tm-week__bar::after {
+  content: attr(title);
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translate(-50%, 4px) scale(0.85);
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--bg-card);
+  font-size: 10.5px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: var(--shadow-1);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.tm-week__col:hover .tm-week__bar::after {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.tm-week__bar:hover {
+  filter: brightness(1.08);
+  transform: scaleX(1.12);
+}
+
+/* -- prefers-reduced-motion：关闭装饰动画 -- */
+@media (prefers-reduced-motion: reduce) {
+  .tm-clock--urgent { animation: none; color: var(--danger); }
+  .tm-tab::after,
+  .tm-week__bar::after { transition: none; }
+  .tm-week__bar { transition: height 0.6s cubic-bezier(0.34, 1.3, 0.64, 1); }
+}

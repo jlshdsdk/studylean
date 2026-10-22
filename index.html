@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>研轻 StudyLean — 上岸，也上秤。</title>
+<meta name="description" content="考研×减脂双线自律管理：倒计时、番茄钟、卡路里、体重曲线，20+ 模块全免费，数据本地私有。">
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<script src="assets/js/store.js"></script>
+<script src="assets/js/auth.js"></script>
+<style>
+/* ================= 研轻入口页（独享样式，不进共享 css） ================= */
+:root {
+  --accent: #5B6CFF;
+  --accent-deep: #4353E8;
+  --accent-soft: rgba(91, 108, 255, .10);
+  --mint: #2DD4BF;
+  --pink: #FF7AB6;
+  --fg: #1A1D2E;
+  --fg-muted: #5A6072;
+  --bg: #F5F7FF;
+  --card: rgba(255, 255, 255, .72);
+  --border: rgba(91, 108, 255, .16);
+  --shadow-1: 0 8px 32px rgba(74, 85, 162, .10);
+  --shadow-2: 0 16px 48px rgba(74, 85, 162, .16);
+  --radius: 16px;
+  --tr: 0.25s ease;
+}
+
+/* 装饰动画总开关：用户偏好减少动效时全部关闭 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  color: var(--fg);
+  background-color: var(--bg);
+  position: relative;
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 76px 24px 56px;
+}
+
+/* ---- 背景层 1：等距圆点阵 SVG pattern（dot 0.5px / 间距 28px / #5B6CFF 6%）---- */
+.bg-dots {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='0.5' fill='%235B6CFF' fill-opacity='0.06'/%3E%3C/svg%3E");
+  animation: dots-breathe 14s ease-in-out infinite;
+}
+/* 点阵极缓慢透明度呼吸 */
+@keyframes dots-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .45; }
+}
+
+/* ---- 背景层 2：3px 细网格（透明度 3%）---- */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(91,108,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,108,255,.03) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+/* ---- 背景层 3：两个大圆渐变光斑（blur 60px）---- */
+.bg-blob { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; filter: blur(60px); }
+.bg-blob--a {
+  width: 520px; height: 520px; top: -140px; left: -120px;
+  background: radial-gradient(circle, rgba(91,108,255,.12), transparent 70%);
+  animation: drift-a 60s ease-in-out infinite;
+}
+.bg-blob--b {
+  width: 460px; height: 460px; bottom: -120px; right: -100px;
+  background: radial-gradient(circle, rgba(20,184,166,.10), transparent 70%);
+  animation: drift-b 60s ease-in-out infinite;
+}
+/* 微动晕 60s */
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(60px, 40px) scale(1.08); }
+  66%      { transform: translate(20px, 80px) scale(.95); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-50px, -30px) scale(1.06); }
+  66%      { transform: translate(-20px, -70px) scale(.94); }
+}
+
+/* ================= 顶部导航条 ================= */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(245, 247, 255, .68);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(91, 108, 255, .10);
+  animation: rise .6s ease both;
+}
+.topbar__brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; letter-spacing: .5px; text-decoration: none; color: var(--fg); }
+.topbar__brand img { width: 28px; height: 28px; border-radius: 8px; }
+.topbar__brand small { font-size: 11.5px; font-weight: 600; color: var(--fg-muted); letter-spacing: 2px; }
+.topbar__actions { display: flex; align-items: center; gap: 18px; }
+.topbar__link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--fg-muted);
+  text-decoration: none; transition: color var(--tr);
+}
+.topbar__link:hover { color: var(--fg); }
+.topbar__link svg { width: 16px; height: 16px; fill: currentColor; }
+.topbar__cta {
+  display: inline-flex; align-items: center; height: 34px; padding: 0 16px;
+  border-radius: 999px; border: 0; cursor: pointer; text-decoration: none;
+  font: inherit; font-size: 13px; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  box-shadow: 0 4px 14px rgba(91, 108, 255, .30);
+  transition: transform var(--tr), box-shadow var(--tr);
+}
+.topbar__cta:hover { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(91, 108, 255, .38); }
+
+/* ================= 主布局 ================= */
+.stage {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 56px;
+  align-items: center;
+  width: 100%; max-width: 1120px;
+}
+
+/* ================= 左侧 hero ================= */
+.hero { animation: rise .7s ease both; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.hero__brand { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+.hero__brand img {
+  width: 48px; height: 48px; border-radius: 12px; box-shadow: var(--shadow-1);
+  animation: logo-float 3.6s ease-in-out infinite;
+}
+/* logo 悬浮微动：缓慢上下 3px */
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.hero__brand-name { font-size: 22px; font-weight: 800; letter-spacing: .5px; }
+.hero__brand-name small { display: block; font-size: 11.5px; font-weight: 500; color: var(--fg-muted); letter-spacing: 2px; }
+
+.hero__slogan {
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 900;
+  line-height: 1.18;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.hero__slogan .u {
+  background: linear-gradient(120deg, var(--accent), var(--mint));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* 打字机金句：纯 CSS steps 方案，--char-count 变量 */
+.typeline {
+  height: 1.7em; font-size: clamp(17px, 2.2vw, 21px);
+  color: var(--fg-muted); font-weight: 600;
+  margin-bottom: 30px;
+}
+/* 三条金句 grid 叠放于同一格：绝对定位会随内容宽度抖动，grid 堆叠更稳 */
+.typeline__viewport { display: grid; }
+.typeline__item {
+  grid-area: 1 / 1;
+  justify-self: start;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 0;
+  border-right: 2px solid var(--accent);
+  animation:
+    line-cycle 27s linear infinite,
+    type calc(var(--char-count) * .16s) steps(var(--char-count), end) forwards,
+    blink .8s step-end infinite;
+  animation-delay: var(--delay), var(--delay), var(--delay);
+}
+@keyframes type { to { width: calc(var(--char-count) * 1em); } }
+@keyframes blink { 50% { border-color: transparent; } }
+/* 轮播：三条金句按 9s 周期错峰显隐（--delay 分别 0s/9s/18s，打字动画在显隐窗口内跑完） */
+@keyframes line-cycle {
+  /* 每条占 1/3 周期：0-1% 立现、0-60% 可见、64% 淡出、至下一条前隐藏 */
+  0%      { opacity: 0; }
+  1%      { opacity: 1; }
+  60%     { opacity: 1; }
+  64%,100%{ opacity: 0; }
+}
+
+/* 卖点：三张带内联 SVG 图标的横排卡片 */
+.hero__points {
+  list-style: none;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin-bottom: 34px;
+}
+.hero__points li {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 16px 15px;
+  background: rgba(255, 255, 255, .62);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(74, 85, 162, .07);
+  font-size: 13.5px; line-height: 1.55; color: var(--fg); font-weight: 500;
+  transition: transform var(--tr), box-shadow var(--tr);
+}
+.hero__points li:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(74, 85, 162, .13); }
+.hero__points .dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.hero__points .dot svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hero__points li:nth-child(2) .dot { color: var(--mint); background: rgba(45, 212, 191, .12); }
+.hero__points li:nth-child(3) .dot { color: var(--pink); background: rgba(255, 122, 182, .12); }
+.hero__points b { color: var(--accent); }
+
+/* 证言轮播：6 条，纯 CSS 36s 交叉淡入 */
+.testimonials {
+  position: relative; height: 96px;
+  border-left: 3px solid var(--accent);
+  padding-left: 18px;
+}
+.testimonial {
+  position: absolute; inset: 0; padding-left: 18px; margin-left: -21px;
+  border-left: 3px solid transparent;
+  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  opacity: 0; pointer-events: none;
+  animation: t-fade 36s linear infinite;
+  animation-delay: calc(var(--i) * 6s);
+}
+.testimonial blockquote { font-size: 16px; font-weight: 600; line-height: 1.5; }
+.testimonial cite { font-style: normal; font-size: 13px; color: var(--fg-muted); }
+.testimonial cite b { color: var(--accent); font-weight: 700; }
+@keyframes t-fade {
+  0%, 12.5%  { opacity: 0; transform: translateY(6px); }
+  4%, 12%    { opacity: 1; transform: none; }
+  16.6%      { opacity: 0; transform: translateY(-6px); }
+}
+
+/* 证言底部指示点：随 --i 同步点亮 */
+.testimonials__dots {
+  position: absolute; left: 18px; bottom: -4px;
+  display: flex; gap: 7px;
+}
+.testimonials__dots span {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: rgba(91, 108, 255, .22);
+  animation: dot-pulse 36s linear infinite;
+  animation-delay: calc(var(--i) * 6s);
+  transition: background var(--tr);
+}
+@keyframes dot-pulse {
+  0%        { background: rgba(91, 108, 255, .22); width: 7px; }
+  2%, 12%   { background: var(--accent); width: 18px; }
+  16.6%,100%{ background: rgba(91, 108, 255, .22); width: 7px; }
+}
+
+/* ================= 右侧登录/注册卡片 ================= */
+.panel { animation: rise .7s ease .12s both; }
+.card {
+  background: var(--card);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* 双层阴影：近处柔和扩散 + 远处大面积晕染 */
+  box-shadow:
+    0 4px 14px rgba(74, 85, 162, .08),
+    0 24px 64px rgba(74, 85, 162, .18);
+  padding: 32px 30px;
+  position: relative;
+}
+
+/* Tab 切换：滑块下划线（用伪元素指示激活 Tab，纯 CSS 跟随 is-active） */
+.card__tabs { position: relative; display: flex; background: var(--accent-soft); border-radius: 12px; padding: 4px; margin-bottom: 24px; }
+.card__tab {
+  position: relative;
+  flex: 1; border: 0; background: transparent; cursor: pointer;
+  height: 38px; border-radius: 9px;
+  font: inherit; font-size: 14px; font-weight: 700; color: var(--fg-muted);
+  transition: all var(--tr);
+}
+.card__tab.is-active { background: #fff; color: var(--accent); box-shadow: 0 2px 8px rgba(74,85,162,.12); }
+/* 激活 Tab 底部滑动下划线：宽度随激活项位置过渡 */
+.card__tab::after {
+  content: ""; position: absolute; left: 50%; bottom: 3px;
+  width: 0; height: 2.5px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--mint));
+  transform: translateX(-50%);
+  transition: width .3s cubic-bezier(.4, 0, .2, 1);
+}
+.card__tab.is-active::after { width: 38%; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 13px; font-weight: 700; color: var(--fg-muted); margin-bottom: 6px;
+  transition: color var(--tr), transform var(--tr);
+  transform-origin: left center;
+}
+/* focus 浮动标签：标签微升 + 染主色（:focus-within，纯 CSS） */
+.field:focus-within label { color: var(--accent); transform: translateY(-1px) scale(1.03); }
+.field input {
+  width: 100%; height: 40px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  background: rgba(255,255,255,.85);
+  padding: 0 12px; font: inherit; font-size: 14px; color: var(--fg);
+  outline: none; transition: border-color var(--tr), box-shadow var(--tr), background var(--tr);
+}
+/* focus 光晕增强：双层 ring + 微亮背景 */
+.field input:focus {
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 0 0 6px rgba(91, 108, 255, .07),
+    0 2px 10px rgba(91, 108, 255, .10);
+}
+.field--hidden { display: none; }
+
+.btn {
+  width: 100%; height: 44px; border: 0; border-radius: 10px; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 800;
+  transition: transform var(--tr), box-shadow var(--tr), background var(--tr);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.card__tab:focus-visible,
+.topbar__link:focus-visible,
+.topbar__cta:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px;
+}
+.btn--primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  background-size: 130% 130%;
+  background-position: 0% 50%;
+  box-shadow: 0 6px 20px rgba(91,108,255,.35);
+}
+/* hover 渐变位移 + 按下反馈 */
+.btn--primary:hover {
+  transform: translateY(-2px);
+  background-position: 100% 50%;
+  box-shadow: 0 10px 26px rgba(91,108,255,.42);
+}
+.btn--primary:active { transform: translateY(0) scale(.97); box-shadow: 0 3px 10px rgba(91,108,255,.30); transition-duration: .08s; }
+.btn--ghost { background: transparent; color: var(--fg-muted); font-weight: 600; height: 40px; margin-top: 10px; }
+.btn--ghost:hover { color: var(--accent); background: var(--accent-soft); }
+.btn[disabled] { opacity: .6; cursor: not-allowed; transform: none !important; }
+
+.card__tip { margin-top: 14px; font-size: 12px; color: var(--fg-muted); text-align: center; line-height: 1.6; }
+
+/* ================= 页脚 ================= */
+.footer {
+  position: relative; z-index: 1;
+  margin-top: 44px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--fg-muted); text-align: center;
+  animation: rise .7s ease .2s both;
+}
+.footer__privacy { font-size: 11px; letter-spacing: .5px; opacity: .8; }
+.footer__privacy b { color: var(--accent); font-weight: 600; }
+
+/* ================= 响应式 ================= */
+@media (max-width: 900px) {
+  .stage {
+    grid-template-columns: 1fr; gap: 36px; max-width: 460px;
+    /* 垂直堆叠过渡：两列变一列时柔和滑入 */
+    animation: stack-in .55s ease both;
+  }
+  @keyframes stack-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  .hero__slogan { font-size: 34px; }
+  .hero__points { grid-template-columns: 1fr; gap: 10px; }
+  .hero__points li { flex-direction: row; align-items: center; }
+  .testimonials { height: 88px; }
+  .bg-blob--a { width: 340px; height: 340px; }
+  .bg-blob--b { width: 300px; height: 300px; }
+}
+
+@media (max-width: 480px) {
+  body { padding: 68px 16px 44px; }
+  .topbar { padding: 10px 16px; }
+  .topbar__link span { display: none; } /* 只留 GitHub 图标 */
+  .testimonial blockquote { font-size: 13.5px; }
+  .testimonial cite { font-size: 12px; }
+  .card { padding: 26px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 背景：等距圆点阵 + 细网格 + 双光斑 -->
+<div class="bg-dots" aria-hidden="true"></div>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-blob bg-blob--a" aria-hidden="true"></div>
+<div class="bg-blob bg-blob--b" aria-hidden="true"></div>
+
+<!-- 顶部导航条：极简（logo + GitHub + 进入应用） -->
+<header class="topbar">
+  <a class="topbar__brand" href="index.html">
+    <img src="assets/img/logo.svg" alt="研轻 logo">
+    研轻 StudyLean&nbsp;<small>STUDY &times; LEAN</small>
+  </a>
+  <nav class="topbar__actions" aria-label="页面导航">
+    <a class="topbar__link" href="https://github.com/jlshdsdk/studylean" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      <span>GitHub</span>
+    </a>
+    <a class="topbar__cta" href="app.html">进入应用</a>
+  </nav>
+</header>
+
+<main class="stage">
+
+  <!-- ============ 左 hero ============ -->
+  <section class="hero">
+    <div class="hero__brand">
+      <img src="assets/img/logo.svg" alt="研轻 StudyLean logo">
+      <div class="hero__brand-name">研轻 StudyLean<small>STUDY &times; LEAN</small></div>
+    </div>
+
+    <h1 class="hero__slogan">上岸，<span class="u">也上秤。</span></h1>
+
+    <!-- 打字机金句：纯 CSS steps，--char-count 驱动宽度，三条 27s 轮换 -->
+    <div class="typeline" aria-live="polite">
+      <span class="typeline__viewport">
+        <span class="typeline__item" style="--char-count:10; --delay:0s;">每一分钟专注都被看见</span>
+        <span class="typeline__item" style="--char-count:9;  --delay:9s;">每一卡路里都被记录</span>
+        <span class="typeline__item" style="--char-count:8;  --delay:18s;">每一天坚持都算数</span>
+      </span>
+    </div>
+
+    <ul class="hero__points">
+      <li>
+        <span class="dot" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18M8 15h4"/></svg></span>
+        <span><b>20+ 模块全免费</b>：倒计时、番茄钟、卡路里、体重曲线、习惯打卡……一个不落</span>
+      </li>
+      <li>
+        <span class="dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M4 12h16M6.5 17.5h11"/></svg></span>
+        <span><b>考研 × 减脂双线</b>：坐得住的书桌，也管得住的体重</span>
+      </li>
+      <li>
+        <span class="dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"/><path d="M9.5 12l1.8 1.8 3.4-3.6"/></svg></span>
+        <span><b>数据本地私有</b>：全部存在你自己的浏览器里，不传服务器</span>
+      </li>
+    </ul>
+
+    <!-- 证言轮播：6 条 × 36s 交叉淡入（§0 唯一有效版本） -->
+    <div class="testimonials" aria-label="用户证言">
+      <div class="testimonial" style="--i:0">
+        <blockquote>“从 187 斤到 132 斤，一边二战一边减重，研轻把两条线都管起来了”</blockquote>
+        <cite><b>阿枝</b> · 减脂成功</cite>
+      </div>
+      <div class="testimonial" style="--i:1">
+        <blockquote>“离考研还有 89 天，研轻让我看见自己每天坐住 6 小时”</blockquote>
+        <cite><b>林一</b> · 二战上岸</cite>
+      </div>
+      <div class="testimonial" style="--i:2">
+        <blockquote>“二战 379 分上岸，经验贴没有的那些数据，研轻替我记着”</blockquote>
+        <cite><b>铭煜</b> · 二战上岸</cite>
+      </div>
+      <div class="testimonial" style="--i:3">
+        <blockquote>“每天 5 点半起床打卡，习惯连击 213 天”</blockquote>
+        <cite><b>菜菜</b> · 考研上岸</cite>
+      </div>
+      <div class="testimonial" style="--i:4">
+        <blockquote>“考研倒计时+体重曲线同屏看，放弃的念头一次都没冒出来”</blockquote>
+        <cite><b>小鹿</b> · 在职备考</cite>
+      </div>
+      <div class="testimonial" style="--i:5">
+        <blockquote>“白色系 UI 清爽不花哨，图书馆打开不社死”</blockquote>
+        <cite><b>白桦</b> · 在职备考</cite>
+      </div>
+      <!-- 指示点：与证言同周期点亮 -->
+      <div class="testimonials__dots" aria-hidden="true">
+        <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span>
+        <span style="--i:3"></span><span style="--i:4"></span><span style="--i:5"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 右 登录/注册卡片 ============ -->
+  <section class="panel">
+    <div class="card">
+      <div class="card__tabs" role="tablist">
+        <button class="card__tab is-active" id="tab-login" role="tab" aria-selected="true" type="button">登 录</button>
+        <button class="card__tab" id="tab-register" role="tab" aria-selected="false" type="button">注 册</button>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <div class="field">
+          <label for="f-name">用户名</label>
+          <input id="f-name" name="name" type="text" autocomplete="username"
+                 placeholder="2-20 个字符" maxlength="20" required>
+        </div>
+        <div class="field">
+          <label for="f-pass">密码</label>
+          <input id="f-pass" name="password" type="password" autocomplete="current-password"
+                 placeholder="至少 8 位，含字母和数字" required>
+        </div>
+        <div class="field field--hidden" id="f-confirm-wrap">
+          <label for="f-confirm">确认密码</label>
+          <input id="f-confirm" name="confirm" type="password" autocomplete="new-password"
+                 placeholder="再输入一次密码">
+        </div>
+
+        <button class="btn btn--primary" id="btn-submit" type="submit">进入研轻</button>
+      </form>
+
+      <button class="btn btn--ghost" id="btn-guest" type="button">先逛逛（游客模式）</button>
+
+      <p class="card__tip">密码经 SHA-256 加盐后仅存于本机浏览器，<br>研轻不会上传你的任何数据。</p>
+    </div>
+  </section>
+</main>
+
+<!-- 页脚：版权 + 隐私小字 -->
+<footer class="footer">
+  <div>&copy; 2026 研轻 StudyLean · 上岸，也上秤。</div>
+  <div class="footer__privacy"><b>数据本地私有</b> · 全免费 · 无广告</div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var SL = window.SL;
+
+  // 已有会话直接进入应用（?upgrade=1 时除外：游客升级注册需要停在登录页）
+  try {
+    var isUpgrade = new URLSearchParams(location.search).get('upgrade') === '1';
+    var sess = localStorage.getItem('sl_session');
+    if (!isUpgrade && sess && SL.auth.session()) { location.replace('app.html'); return; }
+  } catch (e) { /* 忽略读取异常 */ }
+
+  var mode = 'login'; // 'login' | 'register'
+  var $ = function (id) { return document.getElementById(id); };
+  var tabLogin = $('tab-login'), tabReg = $('tab-register');
+  var form = $('auth-form'), btnSubmit = $('btn-submit');
+  var nameIn = $('f-name'), passIn = $('f-pass'), confirmIn = $('f-confirm');
+  var confirmWrap = $('f-confirm-wrap');
+
+  function setMode(m) {
+    mode = m;
+    var isReg = m === 'register';
+    tabLogin.classList.toggle('is-active', !isReg);
+    tabReg.classList.toggle('is-active', isReg);
+    tabLogin.setAttribute('aria-selected', String(!isReg));
+    tabReg.setAttribute('aria-selected', String(isReg));
+    confirmWrap.classList.toggle('field--hidden', !isReg);
+    passIn.setAttribute('autocomplete', isReg ? 'new-password' : 'current-password');
+    btnSubmit.textContent = isReg ? '创建账号' : '进入研轻';
+  }
+
+  tabLogin.addEventListener('click', function () { setMode('login'); });
+  tabReg.addEventListener('click', function () { setMode('register'); });
+
+  function busy(on) {
+    btnSubmit.disabled = on;
+    btnSubmit.textContent = on ? '请稍候…' : (mode === 'register' ? '创建账号' : '进入研轻');
+  }
+
+  function fail(msg) { SL.toast(msg, 'error'); busy(false); }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = nameIn.value.trim();
+    var pass = passIn.value;
+    var vName = SL.auth.validate.name(name);
+    if (vName) { SL.toast(vName, 'error'); nameIn.focus(); return; }
+    var vPass = SL.auth.validate.password(pass);
+    if (vPass) { SL.toast(vPass, 'error'); passIn.focus(); return; }
+    if (mode === 'register' && pass !== confirmIn.value) {
+      SL.toast('两次输入的密码不一致', 'error'); confirmIn.focus(); return;
+    }
+    busy(true);
+    var after = function (err) {
+      if (err) return fail(err.message || '操作失败');
+      SL.toast('欢迎来到研轻！', 'success');
+      setTimeout(function () { location.href = 'app.html'; }, 400);
+    };
+    if (mode === 'register') {
+      SL.auth.register(name, pass, confirmIn.value).then(function () { after(null); }, after);
+    } else {
+      SL.auth.login(name, pass).then(function () { after(null); }, after);
+    }
+  });
+
+  // 游客模式：生成 guest 会话直接进入
+  $('btn-guest').addEventListener('click', function () {
+    SL.auth.guest();
+    SL.toast('已进入游客模式', 'info');
+    setTimeout(function () { location.href = 'app.html'; }, 300);
+  });
+
+  // 从 app 内「升级注册」跳来：自动打开注册 Tab 并提示
+  try {
+    var q = new URLSearchParams(location.search);
+    if (q.get('upgrade') === '1') {
+      setMode('register');
+      SL.toast('注册后用同一账号登录，本机数据继续保留', 'info');
+    }
+  } catch (e) { /* URLSearchParams 不可用时忽略 */ }
+
+  nameIn.focus();
+})();
+</script>
+</body>
+</html>

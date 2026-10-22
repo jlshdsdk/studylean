@@ -1,0 +1,668 @@
+/* StudyLean components.css | Contractor: SA-03 | Contract: ARCHITECTURE v2.0 */
+/* 全站通用组件样式库：卡片 / 按钮 / 表单 / 模态 / Toast / 空状态 / 进度 / 徽章 / 列表行 / 动画 / 工具类 */
+/* 规则：颜色一律引用 base.css 令牌变量，本文件不定义任何主题变量。 */
+
+/* ============================================================
+   1. 卡片系
+   ============================================================ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 16px);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--tr-mid, 0.3s) ease, box-shadow var(--tr-mid, 0.3s) ease,
+    border-color var(--tr-fast, 0.18s) ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+.card--pad { padding: 20px; }
+/* 卡片顶部渐变装饰线：仅 .card--decor 显式启用，避免与模块自有装饰线冲突 */
+.card--decor { position: relative; overflow: hidden; }
+.card--decor::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, var(--accent-2), transparent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title svg { flex: 0 0 auto; }
+
+/* 响应式栅格 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.grid-2 {
+  display: grid;
+  /* 320px 列在 <368px 视口会溢出，窄屏强制单列（480px 断点下另有兜底） */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 380px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* ============================================================
+   2. 按钮系
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  background: var(--bg-card);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background var(--tr-fast, 0.18s) ease, color var(--tr-fast, 0.18s) ease,
+    border-color var(--tr-fast, 0.18s) ease, box-shadow var(--tr-fast, 0.18s) ease,
+    transform var(--tr-fast, 0.18s) ease;
+}
+.btn svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 78%, #000));
+  color: #fff;
+  border-color: transparent;
+}
+.btn--primary:hover {
+  box-shadow: 0 4px 14px var(--accent-soft);
+  filter: brightness(1.08);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--border);
+}
+.btn--ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.btn--danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+.btn--danger:hover { filter: brightness(1.08); }
+
+.btn--sm { height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 8px; }
+.btn--sm svg { width: 14px; height: 14px; }
+.btn--lg { height: 46px; padding: 0 26px; font-size: 15px; border-radius: 12px; }
+
+.btn--icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg-muted);
+}
+.btn--icon:hover { color: var(--accent); background: var(--accent-soft); }
+
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1.5px var(--accent);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================================
+   3. 表单系
+   ============================================================ */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.field > label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color var(--tr-fast, 0.18s) ease, box-shadow var(--tr-fast, 0.18s) ease;
+}
+.textarea {
+  height: auto;
+  min-height: 88px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.6;
+}
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23888ca0' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.input::placeholder,
+.textarea::placeholder { color: var(--fg-muted); opacity: 0.7; }
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1.5px var(--accent);
+}
+.input:disabled,
+.select:disabled,
+.textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 复选框（原生增强） */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--fg);
+}
+.checkbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: background var(--tr-fast, 0.18s) ease, border-color var(--tr-fast, 0.18s) ease;
+}
+.checkbox input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1.5 5L4.5 8L10.5 2' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+.checkbox input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* 开关（switch，结构与 .checkbox 一致：<label class="switch"><input type="checkbox"><i></i>文字</label>） */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--fg);
+  user-select: none;
+}
+.switch input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  border-radius: 11px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--tr-fast, 0.18s) ease;
+}
+.switch input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform var(--tr-fast, 0.18s) ease;
+}
+.switch input[type="checkbox"]:checked { background: var(--accent); }
+.switch input[type="checkbox"]:checked::after { transform: translateX(18px); }
+.switch input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ============================================================
+   4. 模态与浮层（配合 store.js SL.modal 创建的结构）
+   ============================================================ */
+.sl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sl-modal-overlay.is-open { opacity: 1; }
+
+.sl-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 16px);
+  box-shadow: var(--shadow-2);
+  transform: translateY(12px) scale(0.92);
+  opacity: 0;
+  transition: transform 0.32s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sl-modal-overlay.is-open .sl-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.sl-modal__title {
+  padding: 18px 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.sl-modal__body {
+  padding: 12px 20px 4px;
+  font-size: 14px;
+  color: var(--fg);
+}
+.sl-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px 20px;
+}
+
+/* ============================================================
+   5. Toast（结构由 store.js SL.toast 创建：#sl-toast-wrap > .sl-toast.sl-toast--type）
+   ============================================================ */
+.sl-toast {
+  pointer-events: auto;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 11px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: var(--shadow-2);
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  animation: sl-toast-in 0.3s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+.sl-toast--success { border-left-color: #10b981; }
+.sl-toast--error   { border-left-color: #ef4444; }
+.sl-toast--info    { border-left-color: var(--accent); }
+
+@keyframes sl-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   6. 空状态
+   ============================================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 20px;
+  color: var(--fg-muted);
+}
+.empty-state svg {
+  width: 60px;
+  height: 60px;
+  opacity: 0.55;
+  margin-bottom: 4px;
+  animation: emptyFloat 3.2s ease-in-out infinite;
+}
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.empty-state .empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.empty-state p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  max-width: 320px;
+}
+.empty-state .btn { margin-top: 16px; }
+
+/* ============================================================
+   7. 进度组件
+   ============================================================ */
+.progress-ring {
+  display: inline-block;
+}
+.progress-ring > svg {
+  display: block;
+  transform: rotate(-90deg);
+}
+.progress-ring circle {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.progress-ring .ring-track { stroke: var(--border); }
+.progress-ring .ring-value { stroke: var(--accent); stroke-linecap: round; }
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-bar > .bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+/* 进度条内部微光泽 */
+.progress-bar > .bar-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+/* ============================================================
+   8. 徽章 / 标签 / 片
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.tag {
+  --c: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  color: var(--c);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--tr-fast, 0.18s) ease, border-color var(--tr-fast, 0.18s) ease;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--fg-muted);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--tr-fast, 0.18s) ease, color var(--tr-fast, 0.18s) ease,
+    border-color var(--tr-fast, 0.18s) ease;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ============================================================
+   9. 列表行
+   ============================================================ */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-top: -1px;
+  background: transparent;
+  transition: background var(--tr-fast, 0.18s) ease;
+}
+.row:hover { background: var(--accent-soft); }
+.row:first-child { margin-top: 0; }
+.row .row-main {
+  flex: 1;
+  min-width: 0;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--tr-fast, 0.18s) ease;
+}
+.row:hover .row-actions,
+.row:focus-within .row-actions { opacity: 1; }
+@media (hover: none) {
+  .row-actions { opacity: 1; }
+}
+
+/* ============================================================
+   10. 动画类
+   ============================================================ */
+/* 数值滚动（配合 SL.animNum） */
+.anim-num {
+  font-variant-numeric: tabular-nums;
+  will-change: contents;
+}
+
+/* 撒花 canvas 定位层（fixed，不拦截点击） */
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1100;
+}
+.confetti-layer > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 卡片入场 stagger：父容器加 .stagger，子项依次延迟 30ms 渐现 */
+.stagger > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: sl-rise 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.stagger > *:nth-child(1)  { animation-delay: 0.03s; }
+.stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+.stagger > *:nth-child(3)  { animation-delay: 0.09s; }
+.stagger > *:nth-child(4)  { animation-delay: 0.12s; }
+.stagger > *:nth-child(5)  { animation-delay: 0.15s; }
+.stagger > *:nth-child(6)  { animation-delay: 0.18s; }
+.stagger > *:nth-child(7)  { animation-delay: 0.21s; }
+.stagger > *:nth-child(8)  { animation-delay: 0.24s; }
+.stagger > *:nth-child(9)  { animation-delay: 0.27s; }
+.stagger > *:nth-child(10) { animation-delay: 0.30s; }
+.stagger > *:nth-child(n+11) { animation-delay: 0.33s; }
+
+@keyframes sl-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 打字机（纯 CSS steps 方案，--char-count 由使用者设置） */
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--accent);
+  width: 0;
+  max-width: 100%;
+  animation:
+    sl-typing 1.6s steps(var(--char-count, 20), end) 0.3s forwards,
+    sl-blink 0.9s step-end infinite;
+}
+@keyframes sl-typing {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+@keyframes sl-blink {
+  0%, 100% { border-color: var(--accent); }
+  50%      { border-color: transparent; }
+}
+
+/* ============================================================
+   11. 通用工具类
+   ============================================================ */
+.muted        { color: var(--fg-muted); }
+.danger-text  { color: var(--danger-text, #dc2626); }
+.success-text { color: var(--success-text, #047857); }
+
+.mt-8  { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-8  { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+
+.flex     { display: flex; align-items: center; gap: 8px; }
+.between  { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.center   { display: flex; align-items: center; justify-content: center; }
+.text-right { text-align: right; }
+.hidden   { display: none !important; }
+
+/* ============================================================
+   12. 响应式（375px 可用）与可访问性
+   ============================================================ */
+@media (max-width: 480px) {
+  .card--pad { padding: 16px; }
+  .grid, .grid-2, .grid-3 { gap: 12px; }
+  .grid { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .btn { padding: 0 14px; }
+  .btn--lg { padding: 0 18px; }
+  .sl-modal-overlay { padding: 12px; align-items: flex-end; }
+  .sl-modal { max-width: 100%; }
+  .sl-modal__actions { flex-wrap: wrap; }
+  .sl-modal__actions .btn { flex: 1; }
+  .row { padding: 10px 10px; gap: 8px; }
+  .row-actions { opacity: 1; }
+}
+
+/* 动画减弱偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .card:hover { transform: none; }
+  .btn:active:not(:disabled) { transform: none; }
+  .sl-modal-overlay,
+  .sl-modal,
+  .sl-modal-overlay .sl-modal,
+  .sl-toast,
+  .progress-ring circle,
+  .progress-bar > .bar-fill,
+  .row,
+  .row-actions,
+  .tag,
+  .chip { transition: none; animation: none; }
+  .stagger > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .typewriter {
+    animation: none;
+    width: 100%;
+    border-right-color: transparent;
+  }
+  .empty-state svg { animation: none; transform: none; }
+  .progress-bar > .bar-fill::after { display: none; }
+}

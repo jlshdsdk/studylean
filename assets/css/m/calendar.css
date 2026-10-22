@@ -1,0 +1,200 @@
+/* == module:calendar == */
+
+/* ===== 布局 ===== */
+.cal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .cal-layout { grid-template-columns: 1fr; }
+}
+
+/* ===== 月份统计条 ===== */
+.cal-statbar { margin-bottom: 16px; }
+.cal-statbar__inner {
+  display: flex; gap: 28px; flex-wrap: wrap;
+}
+.cal-stat { display: flex; align-items: center; gap: 10px; }
+.cal-stat__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--accent-soft); color: var(--accent);
+  flex: none;
+}
+.cal-stat__value { font-size: 16px; font-weight: 700; line-height: 1.2; }
+
+/* ===== 月历导航 ===== */
+.cal-nav {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px;
+}
+.cal-nav b { font-size: 16px; }
+
+/* ===== 星期表头 ===== */
+.cal-weekrow {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; margin-bottom: 6px;
+}
+.cal-weekrow__cell {
+  text-align: center; font-size: 11.5px; color: var(--fg-muted);
+  padding: 4px 0;
+}
+
+/* ===== 日期格 ===== */
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-cell {
+  min-height: 56px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: var(--bg-inset);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 5px 2px 4px;
+  cursor: pointer;
+  transition: all var(--tr-fast);
+  font: inherit; color: inherit;
+}
+.cal-cell:hover { transform: translateY(-2px); box-shadow: var(--shadow-1); }
+.cal-cell--pad { background: transparent; cursor: default; min-height: 0; }
+.cal-cell--pad:hover { transform: none; box-shadow: none; }
+.cal-cell.is-today { border-color: var(--accent); }
+.cal-cell.is-sel { background: var(--accent-soft); border-color: var(--accent); }
+.cal-cell__num {
+  font-size: 13px; font-weight: 600; line-height: 1.3;
+}
+.cal-cell.is-today .cal-cell__num { color: var(--accent); }
+.cal-cell__dots {
+  display: flex; gap: 3px; align-items: center;
+  margin-top: auto; min-height: 8px; flex-wrap: wrap; justify-content: center;
+}
+.cal-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  display: inline-block; flex: none;
+}
+.cal-dot--more {
+  width: auto; height: auto; border-radius: 6px;
+  font-size: 10.5px; line-height: 1; padding: 1.5px 3.5px;
+  background: var(--fg-muted); color: var(--bg-card);
+  opacity: 0.85;
+}
+
+/* ===== 图例 ===== */
+.cal-legend {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.cal-legend__item {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--fg-muted);
+}
+.cal-legend__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block;
+}
+
+/* ===== 当日详情面板 ===== */
+.cal-detail { position: sticky; top: 76px; }
+@media (max-width: 900px) {
+  .cal-detail { position: static; }
+}
+.cal-detail__head {
+  font-size: 15px; margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.cal-detail__head b { color: var(--accent); }
+.cal-detail__rows { display: flex; flex-direction: column; gap: 8px; }
+.cal-detail__row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px;
+  background: var(--bg-inset); border-radius: 10px;
+  transition: transform var(--tr-fast);
+}
+.cal-detail__row:hover { transform: translateX(3px); }
+.cal-detail__icon {
+  display: inline-flex; color: var(--accent); flex: none;
+}
+.cal-detail__label {
+  font-size: 12.5px; color: var(--fg-muted); flex: none;
+  width: 32px;
+}
+.cal-detail__value { font-size: 13.5px; margin-left: auto; text-align: right; }
+
+.cal-detail__sec {
+  font-size: 12px; color: var(--fg-muted); font-weight: 600;
+  margin: 16px 0 8px;
+}
+.cal-diary-item {
+  padding: 10px 12px;
+  background: var(--bg-inset); border-radius: 10px;
+  margin-bottom: 8px;
+}
+.cal-diary-item__title {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 600; margin-bottom: 4px;
+}
+.cal-diary-item__excerpt {
+  font-size: 12.5px; color: var(--fg-muted);
+  margin: 0 0 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 375px) {
+  .cal-cell { min-height: 46px; }
+  .cal-statbar__inner { gap: 16px; }
+}
+
+/* ===== BE-04 美化 ===== */
+
+/* 今日格：渐变描边光圈（双层 ring + 柔光） */
+.cal-cell.is-today {
+  position: relative;
+  box-shadow:
+    0 0 0 1px var(--bg-card),
+    0 0 0 2px rgba(var(--accent-raw), 0.55),
+    0 0 14px rgba(var(--accent-raw), 0.25);
+  border-color: var(--accent);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-raw), 0.10), rgba(var(--accent-raw), 0.03)),
+    var(--bg-inset);
+}
+
+/* 四色圆点同色微光（选择子匹配 JS 写入的 inline style 变量名：
+   打卡绿/专注蓝/饮食橙/日记紫） */
+.cal-dot[style*="--c-green"]  { box-shadow: 0 0 5px 0 var(--c-green); }
+.cal-dot[style*="--c-blue"]   { box-shadow: 0 0 5px 0 var(--c-blue); }
+.cal-dot[style*="--c-orange"] { box-shadow: 0 0 5px 0 var(--c-orange); }
+.cal-dot[style*="--c-purple"] { box-shadow: 0 0 5px 0 var(--c-purple); }
+
+/* 选中日详情面板：fadeUp 滑入动画 */
+@keyframes cal-detail-fadeup {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cal-detail { animation: cal-detail-fadeup 0.35s cubic-bezier(0.4, 0, 0.2, 1) both; }
+
+/* 月份切换按钮：hover 图标旋转（chevron 微转向暗示切换方向） */
+#calPrev:hover svg { transform: rotate(-14deg); }
+#calNext:hover svg { transform: rotate(14deg); }
+#calPrev svg, #calNext svg {
+  transition: transform var(--tr-fast);
+  display: inline-block;
+}
+/* 今天按钮：轻弹 */
+#calToday:hover { transform: translateY(-1px); }
+
+/* 周末列表头（六/日）用 accent-2 强调 */
+.cal-weekrow__cell:nth-child(6),
+.cal-weekrow__cell:nth-child(7) { color: var(--accent-2); opacity: 0.9; }
+
+/* BE-04: 减动效兜底（base.css 有全局开关） */
+@media (prefers-reduced-motion: reduce) {
+  .cal-detail { animation: none; }
+  #calToday:hover { transform: none; }
+}
