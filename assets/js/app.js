@@ -551,6 +551,16 @@ renderTopbarIcons();
 applyTheme();
 SL.refreshBadges();
 
+// 云端账号：启动时拉取最新数据；本地更新则回推
+if (SL.auth && SL.auth.sync && SL.auth.sync.isCloudUser()) {
+  SL.auth.sync.pull().then(function (result) {
+    if (result === 'local-newer' || result === 'empty') SL.auth.sync.schedulePush();
+  }).catch(function (e) {
+    console.warn('[sync] pull failed:', e.message);
+    SL.toast('云同步失败：' + e.message, 'error');
+  });
+}
+
 if (!location.hash) {
   // 无 hash：赋值会自动触发 hashchange → navigate()，无需手动再调一次
   location.hash = '#/dashboard';

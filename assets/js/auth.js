@@ -127,9 +127,159 @@
     }).then(function (json) {
       var meta = (json.user && json.user.user_metadata) || {};
       var uid = (json.user && json.user.id) || SL.id();
+      // 持久化云端令牌：供 sl_data 表读写与自动续期
+      if (json.access_token) {
+        writeJSON(TOKEN_KEY, {
+          access: json.access_token,
+          refresh: json.refresh_token || '',
+          expiresAt: Date.now() + ((json.expires_in || 3600) * 1000)
+        });
+      }
       return { id: uid, name: meta.display_name || name };
     });
   }
+
+  // ===== 云端令牌与数据同步（sl_data 表）=====
+  var TOKEN_KEY = 'sl_cloud_token';
+  var SYNC_AT_KEY = 'sl_synced_at';
+
+  function readToken() {
+    var t = readJSON(TOKEN_KEY, null);
+    return t && t.access ? t : null;
+  }
+
+  function clearToken() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ }
+  }
+
+  /** 用 access_token 调 /rest/v1（sl_data 表）。401 时尝试用 refresh_token 续期一次并重试。 */
+  function restFetch(path, opts, retried) {
+    var cfg = cloudConfig();
+    var tok = readToken();
+    if (!cfg || !tok) return Promise.reject(new Error('未登录云端'));
+    var headers = {
+      'Content-Type': 'application/json',
+      'apikey': cfg.anonKey,
+      'Authorization': 'Bearer ' + tok.access
+    };
+    if (opts && opts.headers) Object.assign(headers, opts.headers);
+    return fetch(cfg.url + path, {
+      method: (opts && opts.method) || 'GET',
+      headers: headers,
+      body: opts && opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (res) {
+      if (res.status === 401 && !retried && tok.refresh) {
+        return refreshAccessToken().then(function () { return restFetch(path, opts, true); });
+      }
+      return res.json().catch(function () { return {}; }).then(function (json) {
+        if (!res.ok) {
+          var msg = (json && (json.message || json.msg || json.error)) || ('同步请求失败 (' + res.status + ')');
+          if (res.status === 404 && /rest\/v1/.test(path)) msg = 'sl_data 表不存在：请在 Supabase SQL Editor 执行建表 SQL（见 docs/DEPLOY.md）';
+          if (res.status === 403 || res.status === 401) msg = '云端权限不足：请确认已执行 RLS 策略 SQL（见 docs/DEPLOY.md）';
+          var err = new Error(msg);
+          err.status = res.status;
+          throw err;
+        }
+        return { json: json, res: res };
+      });
+    });
+  }
+
+  function refreshAccessToken() {
+    var cfg = cloudConfig();
+    var tok = readToken();
+    if (!cfg || !tok || !tok.refresh) return Promise.reject(new Error('登录已过期，请重新登录'));
+    return fetch(cfg.url + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': cfg.anonKey },
+      body: JSON.stringify({ refresh_token: tok.refresh })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (json) {
+        if (!res.ok) throw new Error('云端登录已过期，请重新登录');
+        writeJSON(TOKEN_KEY, {
+          access: json.access_token,
+          refresh: json.refresh_token || tok.refresh,
+          expiresAt: Date.now() + ((json.expires_in || 3600) * 1000)
+        });
+        return true;
+      });
+    });
+  }
+
+  var sync = {
+    /** 登录后/启动时拉取云端数据。云端较新则覆盖本地并刷新页面状态。 */
+    pull: function () {
+      var user = SL.state && SL.state.user;
+      if (!user || !user.id || !readToken()) return Promise.resolve('skip');
+      return restFetch('/rest/v1/sl_data?select=value,updated_at&user_id=eq.' + encodeURIComponent(user.id))
+        .then(function (r) {
+          var row = (r.json && r.json[0]) || null;
+          if (!row || !row.value) return 'empty';
+          var serverAt = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+          var localAt = Number(localStorage.getItem(SYNC_AT_KEY) || 0);
+          if (serverAt > localAt) {
+            if (SL.mergeDefaults) {
+              SL.state.data = SL.mergeDefaults(row.value);
+            } else {
+              SL.state.data = row.value;
+            }
+            SL.saveNow();
+            localStorage.setItem(SYNC_AT_KEY, String(serverAt));
+            SL.emit('data:settings'); // 触发各视图按需刷新
+            SL.toast('已从云端同步最新数据', 'success');
+            return 'pulled';
+          }
+          return 'local-newer';
+        });
+    },
+
+    /** 推送本地数据到云端（upsert）。5 秒防抖由 SL.syncEngine 调度。 */
+    push: function () {
+      var user = SL.state && SL.state.user;
+      if (!user || !user.id || !readToken()) return Promise.resolve(false);
+      var nowIso = new Date().toISOString();
+      return restFetch('/rest/v1/sl_data?user_id=eq.' + encodeURIComponent(user.id), {
+        method: 'PATCH',
+        headers: { Prefer: 'resolution=merge-duplicates' },
+        body: { value: SL.state.data, updated_at: nowIso }
+      }).then(function (r) {
+        // PATCH 更新 0 行说明行不存在 → 插入
+        if (!r.json || r.json.length === 0) {
+          return restFetch('/rest/v1/sl_data', {
+            method: 'POST',
+            headers: { Prefer: 'resolution=merge-duplicates' },
+            body: { user_id: user.id, value: SL.state.data, updated_at: nowIso }
+          });
+        }
+        return r;
+      }).then(function () {
+        localStorage.setItem(SYNC_AT_KEY, String(Date.now()));
+        return true;
+      });
+    },
+
+    /** 登录/数据变化后的自动同步入口（防抖 5s；失败静默，手动同步才报错）。 */
+    schedulePush: function () {
+      clearTimeout(sync._t);
+      sync._t = setTimeout(function () {
+        sync.push().catch(function (e) {
+          console.warn('[sync] push failed:', e.message);
+        });
+      }, 5000);
+    },
+
+    lastSyncedAt: function () {
+      var v = Number(localStorage.getItem(SYNC_AT_KEY) || 0);
+      return v ? new Date(v) : null;
+    },
+
+    isCloudUser: function () {
+      var u = SL.state && SL.state.user;
+      return !!(u && !u.guest && u.id && readToken());
+    },
+
+    logout: function () { clearToken(); }
+  };
 
   // ===== 会话 =====
   function setSession(user) {
@@ -190,7 +340,7 @@
               resolve(user);
             });
           }).catch(function (e) {
-            reject(new Error('云端注册失败：' + (e && e.message ? e.message : '未知错误')));
+            reject(new Error('云端注册失败：' + (e && e.message ? e.message : '未知错误') + '。若提示已注册，换一个用户名即可'));
           });
         } else {
           doLocal();
@@ -210,7 +360,9 @@
         var finishLocal = function () {
           var accounts = readJSON(ACC_KEY, {});
           var acc = accounts[name];
-          if (!acc) return reject(new Error('用户不存在，请先注册'));
+          if (!acc) return reject(new Error(cloudConfig()
+            ? '云端与本机均无此账号，请先在本页注册'
+            : '此账号不在本设备上（本地账号只保存在注册时的浏览器）。跨设备使用：请先在原设备「设置→云同步」配置 Supabase，或直接在本设备注册新账号'));
           hashPassword(password, acc.salt).then(function (hash) {
             if (hash !== acc.hash) return reject(new Error('密码错误'));
             var user = makeUser(acc.cloudId || null, name, false);
@@ -246,9 +398,10 @@
       return p;
     },
 
-    /** 登出：清除会话。 */
+    /** 登出：清除会话与云端令牌。 */
     logout: function () {
       try { localStorage.removeItem(SES_KEY); } catch (e) {}
+      clearToken();
       if (SL.state) SL.state.user = null;
       SL.emit('user', null);
     },
@@ -314,7 +467,10 @@
         var sess = readJSON(SES_KEY, null);
         if (sess) { sess.name = name; writeJSON(SES_KEY, sess); }
       } catch (e) { /* noop */ }
-    }
+    },
+
+    /** 云数据同步引擎：pull / push / schedulePush / 状态查询。 */
+    sync: sync
   };
 
   window.SL.auth = auth;

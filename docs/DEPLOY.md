@@ -57,14 +57,30 @@ npx serve .
 
 ### 2. 执行建表 SQL
 
-进入项目 → 左侧 **SQL Editor** → 新建查询，粘贴执行：
+进入项目 → 左侧 **SQL Editor** → 新建查询，粘贴执行（含 RLS 行级安全策略，**必须整段执行**，否则同步会报权限错误）：
 
 ```sql
 create table sl_data (
   user_id uuid primary key references auth.users,
   value jsonb,
-  updated_at timestamptz
+  updated_at timestamptz default now()
 );
+
+-- 行级安全：每个用户只能读写自己的数据行
+alter table sl_data enable row level security;
+
+create policy "own row select" on sl_data
+  for select using (auth.uid() = user_id);
+
+create policy "own row insert" on sl_data
+  for insert with check (auth.uid() = user_id);
+
+create policy "own row update" on sl_data
+  for update using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "own row delete" on sl_data
+  for delete using (auth.uid() = user_id);
 ```
 
 表结构说明：

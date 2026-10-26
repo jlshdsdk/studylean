@@ -184,8 +184,16 @@ async function doClear() {
 /* ===== 云同步 ===== */
 function cloudFormHTML() {
   const cfg = readCloudCfg();
+  const isCloud = !!(SL.auth && SL.auth.sync && SL.auth.sync.isCloudUser && SL.auth.sync.isCloudUser());
+  const last = isCloud && SL.auth.sync.lastSyncedAt() ? '上次同步：' + SL.fmt.dateTime(SL.auth.sync.lastSyncedAt().getTime()) : '';
   return '<div class="field"><label>Supabase URL</label><input class="input" id="stCloudUrl" placeholder="https://xxxx.supabase.co" value="' + SL.esc(cfg.url || '') + '"></div>' +
     '<div class="field"><label>Anon Key</label><input class="input" id="stCloudKey" placeholder="eyJhbGciOi..." value="' + SL.esc(cfg.anonKey || '') + '"></div>' +
+    (isCloud ? '<div class="tag tag--green" style="display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;">' + SL.icon('cloud', 13) + ' 云端账号已连接 · 数据自动同步</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">' +
+      '<button class="btn btn--primary btn--sm" id="stSyncNow">立即同步</button>' +
+      '<span class="muted" style="font-size:12px;" id="stSyncInfo">' + (last || '尚未同步') + '</span></div>' +
+      '<p class="muted" style="font-size:12px;margin:8px 0 0;">换设备登录同一账号即可拉取全部数据。</p>'
+      : '') +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
     '<button class="btn btn--primary btn--sm" id="stCloudSave">保存云配置</button>' +
     (cfg.url ? '<button class="btn btn--ghost btn--sm" id="stCloudTest">测试连接</button><button class="btn btn--danger btn--sm" id="stCloudClear">清除配置</button>' : '') +
@@ -225,9 +233,26 @@ function bindCloud(container) {
       const r = await fetch(cfg.url + '/auth/v1/health', { headers: { apikey: cfg.anonKey } });
       msg(r.ok ? '连接成功 ✓ Supabase 服务可达' : '可达但返回 ' + r.status, r.ok);
     } catch (e) {
-      msg('连接失败：' + e.message, false);
+      msg('连接失败：' + e.message, false);    }
+  });
+  container.querySelector('#stSyncNow')?.addEventListener('click', async () => {
+    const btn = container.querySelector('#stSyncNow');
+    const info = container.querySelector('#stSyncInfo');
+    if (!SL.auth || !SL.auth.sync) return;
+    btn.disabled = true;
+    if (info) info.textContent = '同步中…';
+    try {
+      const r = await SL.auth.sync.pull();
+      if (r === 'local-newer' || r === 'empty') await SL.auth.sync.push();
+      SL.toast(r === 'pulled' ? '已拉取云端最新数据' : '本地数据已推送到云端', 'success');
+      render(container, {});
+    } catch (e) {
+      SL.toast('同步失败：' + e.message, 'error');
+      if (info) info.textContent = '同步失败：' + e.message;
+      btn.disabled = false;
     }
   });
+
   container.querySelector('#stCloudClear')?.addEventListener('click', async () => {
     if (!await SL.confirm('清除云同步配置？本地数据不受影响。')) return;
     localStorage.removeItem('sl_cloud_config');

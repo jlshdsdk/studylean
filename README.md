@@ -126,9 +126,10 @@ git clone https://github.com/jlshdsdk/studylean.git
 如果你希望多设备同步，可以（可选）配置免费的 Supabase：
 
 1. 在 [supabase.com](https://supabase.com) 注册并创建一个项目；
-2. 在 SQL Editor 中执行建表 SQL（见下方或 [docs/DEPLOY.md](docs/DEPLOY.md)）；
+2. 在 SQL Editor 中执行建表 SQL（见下方或 [docs/DEPLOY.md](docs/DEPLOY.md)，**含 RLS 策略需整段执行**）；
 3. 复制项目的 URL 与 anon key；
-4. 在研轻应用「设置 → 云同步」中填入 URL 与 anon key，即可启用云账号注册/登录与数据同步。
+4. 在研轻应用「设置 → 云同步」中填入 URL 与 anon key；
+5. 注册/登录云端账号后，数据在所有设备间自动同步（打开应用自动拉取，记录变更自动上推）。
 
 建表 SQL：
 
@@ -136,8 +137,14 @@ git clone https://github.com/jlshdsdk/studylean.git
 create table sl_data (
   user_id uuid primary key references auth.users,
   value jsonb,
-  updated_at timestamptz
+  updated_at timestamptz default now()
 );
+
+alter table sl_data enable row level security;
+create policy "own row select" on sl_data for select using (auth.uid() = user_id);
+create policy "own row insert" on sl_data for insert with check (auth.uid() = user_id);
+create policy "own row update" on sl_data for update using (auth.uid() = user_id);
+create policy "own row delete" on sl_data for delete using (auth.uid() = user_id);
 ```
 
 完整流程见 [docs/DEPLOY.md](docs/DEPLOY.md)。不配置 Supabase 不影响任何本地功能。

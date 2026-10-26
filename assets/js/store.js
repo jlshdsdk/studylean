@@ -129,11 +129,22 @@
         try {
           localStorage.setItem(LS_KEY, JSON.stringify(this.state.data));
           if (this._quotaWarned) { this._quotaWarned = false; this.toast('存储已恢复正常', 'success'); }
+          this._hookCloudSync();
         } catch (e) {
           console.error('[SL] save failed (quota?)', e);
           this._quotaFailed(e);
         }
       }, 150);
+    },
+
+    // 云同步钩子：云端账号登录时数据变化自动（防抖）上推；本地/游客模式零开销
+    _hookCloudSync() {
+      try {
+        const u = this.state && this.state.user;
+        if (u && !u.guest && u.id && window.SL && SL.auth && SL.auth.sync) {
+          SL.auth.sync.schedulePush();
+        }
+      } catch (e) { /* 同步失败不阻塞本地保存 */ }
     },
 
     saveNow() {
