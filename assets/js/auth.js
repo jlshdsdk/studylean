@@ -13,8 +13,20 @@
   var ACC_KEY = 'sl_accounts';
   var SES_KEY = 'sl_session';
 
+  // 默认云配置：主人自己的 Supabase 项目（与 kaoyan-vocab5 / ds-code-notes 共用，账号互通）。
+  // anon key 属于公开 publishable key，可安全内置于前端；localStorage 'sl_cloud_config' 可覆盖。
+  var DEFAULT_CLOUD = {
+    url: 'https://qvemohfojzawpnleyjsb.supabase.co',
+    anonKey: 'sb_publishable_VFalDAdNoIgd19oxlZ8wlw_AM-rv7Uq'
+  };
+
   function cloudConfig() {
-    try { return window.SL_CLOUD_CONFIG || null; } catch (e) { return null; }
+    try {
+      if (window.SL_CLOUD_CONFIG) return window.SL_CLOUD_CONFIG;
+      var saved = readJSON('sl_cloud_config', null);
+      if (saved && saved.url && saved.anonKey) return saved;
+      return DEFAULT_CLOUD;
+    } catch (e) { return DEFAULT_CLOUD; }
   }
 
   function readJSON(key, fallback) {
@@ -68,6 +80,12 @@
   function validateName(name) {
     if (!name || typeof name !== 'string') return '请输入用户名';
     var n = name.trim();
+    // 邮箱格式：云端账号直接用邮箱（与其他研轻系站点账号互通）
+    if (n.indexOf('@') > 0) {
+      if (n.length > 40) return '邮箱过长（≤40 字符）';
+      if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(n)) return '邮箱格式不正确';
+      return null;
+    }
     if (n.length < 2 || n.length > 20) return '用户名需 2-20 个字符';
     if (!/^[A-Za-z0-9_\u4e00-\u9fa5]+$/.test(n)) return '用户名仅支持中英文、数字与下划线';
     return null;
@@ -108,10 +126,15 @@
     });
   }
 
+  // 云端账号邮箱：邮箱型用户名原样使用（与既有账号互通），其余映射为伪邮箱
+  function cloudEmail(name) {
+    var n = String(name || '').trim();
+    return n.indexOf('@') > 0 ? n : n + '@studylean.local';
+  }
+
   function cloudSignup(name, password) {
     var cfg = cloudConfig();
-    // Supabase Auth 要求 email；本地用户名映射为伪邮箱域名
-    var email = name + '@studylean.local';
+    var email = cloudEmail(name);
     return cloudFetch('/auth/v1/signup', {
       body: { email: email, password: password, data: { display_name: name } }
     }).then(function (json) {
@@ -121,7 +144,7 @@
   }
 
   function cloudLogin(name, password) {
-    var email = name + '@studylean.local';
+    var email = cloudEmail(name);
     return cloudFetch('/auth/v1/token?grant_type=password', {
       body: { email: email, password: password }
     }).then(function (json) {
@@ -340,7 +363,8 @@
               resolve(user);
             });
           }).catch(function (e) {
-            reject(new Error('云端注册失败：' + (e && e.message ? e.message : '未知错误') + '。若提示已注册，换一个用户名即可'));
+            var hint = /已注册|already|exists/i.test(e && e.message || '') ? '（该邮箱已注册，请直接用登录页登录）' : '';
+            reject(new Error('云端注册失败：' + (e && e.message ? e.message : '未知错误') + hint));
           });
         } else {
           doLocal();

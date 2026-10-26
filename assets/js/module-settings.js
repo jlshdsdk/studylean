@@ -201,8 +201,12 @@ function cloudFormHTML() {
 }
 
 function readCloudCfg() {
-  try { return JSON.parse(localStorage.getItem('sl_cloud_config')) || {}; }
-  catch (e) { return {}; }
+  try {
+    const saved = JSON.parse(localStorage.getItem('sl_cloud_config')) || {};
+    if (saved.url && saved.anonKey) return saved;
+  } catch (e) { /* fallthrough */ }
+  // 未自定义时显示内置默认配置（可直接使用，无需填写）
+  return { url: 'https://qvemohfojzawpnleyjsb.supabase.co', anonKey: 'sb_publishable_VFalDAdNoIgd19oxlZ8wlw_AM-rv7Uq', builtin: true };
 }
 
 function bindCloud(container) {

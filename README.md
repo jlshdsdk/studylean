@@ -125,27 +125,33 @@ git clone https://github.com/jlshdsdk/studylean.git
 
 如果你希望多设备同步，可以（可选）配置免费的 Supabase：
 
-1. 在 [supabase.com](https://supabase.com) 注册并创建一个项目；
-2. 在 SQL Editor 中执行建表 SQL（见下方或 [docs/DEPLOY.md](docs/DEPLOY.md)，**含 RLS 策略需整段执行**）；
-3. 复制项目的 URL 与 anon key；
-4. 在研轻应用「设置 → 云同步」中填入 URL 与 anon key；
-5. 注册/登录云端账号后，数据在所有设备间自动同步（打开应用自动拉取，记录变更自动上推）。
+研轻已**预配置**与「考研词汇站 / 数据结构笔记站」同一个 Supabase 项目——**账号互通，无需任何设置**即可用邮箱注册/登录并跨设备同步。只需一次性建表：
 
-建表 SQL：
+1. 打开 [Supabase 控制台](https://supabase.com/dashboard) → 项目 → **SQL Editor**；
+2. 粘贴仓库根的 [`supabase_setup_studylean.sql`](supabase_setup_studylean.sql)（含 RLS 策略，整段）→ Run；
+3. 完成。之后任意设备打开研轻 → 登录页 → 输入邮箱与密码（老站账号直接用），数据自动同步。
+
+建表 SQL（与上述文件相同）：
 
 ```sql
-create table sl_data (
+create table if not exists sl_data (
   user_id uuid primary key references auth.users,
   value jsonb,
   updated_at timestamptz default now()
 );
 
 alter table sl_data enable row level security;
+drop policy if exists "own row select" on sl_data;
 create policy "own row select" on sl_data for select using (auth.uid() = user_id);
+drop policy if exists "own row insert" on sl_data;
 create policy "own row insert" on sl_data for insert with check (auth.uid() = user_id);
+drop policy if exists "own row update" on sl_data;
 create policy "own row update" on sl_data for update using (auth.uid() = user_id);
+drop policy if exists "own row delete" on sl_data;
 create policy "own row delete" on sl_data for delete using (auth.uid() = user_id);
 ```
+
+> 想换成自己的 Supabase 项目？在「设置 → 云同步」填入自己的 URL 与 anon key 即可覆盖默认配置（见 [docs/DEPLOY.md](docs/DEPLOY.md)）。
 
 完整流程见 [docs/DEPLOY.md](docs/DEPLOY.md)。不配置 Supabase 不影响任何本地功能。
 
