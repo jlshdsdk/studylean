@@ -411,7 +411,11 @@
             if (accounts[name]) {
               finishLocal();
             } else {
-              reject(new Error('云端登录失败：' + (e && e.message ? e.message : '未知错误')));
+              var em = e && e.message || '未知错误';
+              if (/invalid login credentials|invalid_credentials/i.test(em)) {
+                em = '邮箱或密码不正确。提示：跨设备/老站账号请输入完整邮箱（如 3667656609@qq.com），密码与考研词汇站相同；忘记密码请去词汇站登录页重置（三站通用）';
+              }
+              reject(new Error('云端登录失败：' + em));
             }
           });
         } else {
