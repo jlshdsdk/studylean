@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body><div id="out">pending</div>
+<script>
+document.getElementById('out').textContent =
+  'innerWidth=' + window.innerWidth +
+  ' innerHeight=' + window.innerHeight +
+  ' dpr=' + window.devicePixelRatio +
+  ' mq480=' + window.matchMedia('(max-width:480px)').matches +
+  ' mq375=' + window.matchMedia('(max-width:375px)').matches;
+</script></body></html>

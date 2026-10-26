@@ -2,11 +2,17 @@
 
 .forest-stats {
   display: grid;
+  /* 三联统计卡（棵数/分钟/图鉴）等宽等高 */
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 14px;
   margin-bottom: 16px;
 }
-.forest-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.forest-stat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-width: 0;
+}
+.forest-stat__num { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .forest-stat__icon { color: var(--accent); }
 .forest-stat__num { font-size: 26px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .forest-stat__label { font-size: 12px; color: var(--fg-muted); }
@@ -141,7 +147,25 @@
   .forest-tree { width: 52px; height: 58px; }
 }
 
+/* MP-09：375px 森林树阵防溢出——树格 minmax 收到 48px，一行 5 棵稳定；
+   树尺寸同步收敛，卡片窄内边距 */
+@media (max-width: 480px) {
+  .forest-grid { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; padding: 8px; }
+  .forest-tree { width: 44px; height: 50px; }
+}
+
 /* ===== BE-05 美化：摆动伪随机相位 / 稀有粒子 / 草地色带 / 图鉴呼吸 ===== */
+
+/* 树种渐变色系统（与 JS 内 SVG 用色协调的 CSS 侧定义，供卡/图鉴装饰使用）
+   sprout=嫩绿 / pine=松绿 / oak=棕橙 / ginkgo=金 / maple=红 / sakura=粉樱 */
+.forest-grid, .forest-dex {
+  --tree-sprout: #7ec850;
+  --tree-pine:   #2f7d4f;
+  --tree-oak:    #8a5a2b;
+  --tree-ginkgo: #e9b83c;
+  --tree-maple:  #e06c3c;
+  --tree-sakura: #f7a8c4;
+}
 
 /* 重定义摆动：振幅走变量，供 nth-child 伪随机化 */
 @keyframes tree-sway {
@@ -156,10 +180,10 @@
 .forest-grid .forest-tree:nth-child(7n+4) { --sway-delay: 2.6s; --sway-amp: 1.4deg; }
 .forest-grid .forest-tree:nth-child(11n+6) { --sway-delay: 3.2s; --sway-amp: 2.8deg; }
 
-/* 地面渐变草地色带（叠加在原 accent 渐变之上，深色下低透明度自然融合） */
+/* 地面渐变草地色带：高度收敛 24px（底部 8% 区域），深色下低透明度自然融合 */
 .forest-grid {
   background:
-    linear-gradient(180deg, transparent 55%, rgba(34, 197, 94, 0.08) 58%, rgba(34, 197, 94, 0.14) 78%, rgba(22, 163, 74, 0.18) 100%),
+    linear-gradient(180deg, transparent calc(100% - 24px), rgba(34, 197, 94, 0.08) calc(100% - 24px), rgba(34, 197, 94, 0.14) calc(100% - 10px), rgba(22, 163, 74, 0.18) 100%),
     linear-gradient(180deg, transparent 55%, var(--accent-soft) 56%);
 }
 
@@ -220,4 +244,22 @@
   .forest-grid .forest-tree:has(svg [fill="#e06c3c"])::before,
   .forest-grid .forest-tree:has(svg [fill="#f7a8c4"])::before { animation: none; opacity: 0; }
   .forest-dex__item.is-locked .forest-dex__art::after { animation: none; opacity: 0.6; }
+}
+
+/* 深色模式微调：草地色带在暗底上压暗一档，避免荧光感 */
+html[data-theme="dark"] .forest-grid {
+  background:
+    linear-gradient(180deg, transparent calc(100% - 24px), rgba(34, 197, 94, 0.05) calc(100% - 24px), rgba(34, 197, 94, 0.09) calc(100% - 10px), rgba(22, 163, 74, 0.12) 100%),
+    linear-gradient(180deg, transparent 55%, var(--accent-soft) 56%);
+}
+
+/* 深色模式：稀有树种粒子光斑为纯白系，暗底上刺眼，整体降档 */
+html[data-theme="dark"] .forest-grid .forest-tree:has(svg [fill="#e06c3c"])::before,
+html[data-theme="dark"] .forest-grid .forest-tree:has(svg [fill="#f7a8c4"])::before {
+  opacity: 0;
+  animation-name: tree-sparkle-dark;
+}
+@keyframes tree-sparkle-dark {
+  0%, 100% { opacity: 0; transform: translateY(2px) scale(0.6); }
+  50%      { opacity: 0.45; transform: none; }
 }

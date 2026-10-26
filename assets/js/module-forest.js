@@ -19,16 +19,24 @@ const SPECIES = {
   sakura: { name: '樱花',   desc: '稀有种 · 春日的馈赠', unlock: '累计种下 30 棵树解锁',     need: 30 }
 };
 const RARE = ['maple', 'sakura'];
+// 合法树种集合（treeSVG 的 fallback 判定用；'tree' 是历史遗留非法值）
+treeSVG.known = { sprout: 1, pine: 1, oak: 1, ginkgo: 1, maple: 1, sakura: 1 };
 
-function trees() { return (SL.getData('forest') || {}).trees || []; }
+function trees() {
+  const t = (SL.getData('forest') || {}).trees;
+  return Array.isArray(t) ? t : [];
+}
 function isUnlocked(key, list) {
-  if (key === 'maple') return list.length >= 10;
-  if (key === 'sakura') return list.length >= 30;
-  return list.some(t => t && t.species === key);
+  const clean = list.filter(Boolean);
+  if (key === 'maple') return clean.length >= 10;
+  if (key === 'sakura') return clean.length >= 30;
+  return clean.some(t => t.species === key);
 }
 
 /* ===== 每种树的小 SVG（颜色 / 大小 / 层次各不同） ===== */
 function treeSVG(key) {
+  // 旧数据可能出现非法 species（如早期 'tree'），兜底渲染为新芽，避免空白格子
+  if (!SPECIES[key] || !treeSVG.known[key]) key = 'sprout';
   const W = 64, H = 72;
   const open = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="100%" aria-hidden="true">';
   const trunk = (x, y, w, h, c) =>
@@ -92,9 +100,9 @@ function treeSilhouette(key) {
 function render(container, params) {
   viewRoot = container; viewParams = params || {};
   const list = trees();
-  const totalMin = list.reduce((s, t) => s + (t.minutes || 0), 0);
+  const totalMin = list.reduce((s, t) => s + (t && t.minutes || 0), 0);
   const today = SL.fmt.date(new Date());
-  const todayTrees = list.filter(t => t.date === today);
+  const todayTrees = list.filter(t => t && t.date === today);
 
   container.innerHTML =
     '<div class="view-header fade-up"><h1>专注森林</h1>' +
@@ -110,7 +118,8 @@ function render(container, params) {
       '<div class="forest-land-head"><h2>我的森林</h2>' +
       (todayTrees.length ? '<span class="forest-today-badge">' + SL.icon('sun', 14) + ' 今日新种 ' + todayTrees.length + ' 棵</span>' : '') +
       '</div>' +
-      (list.length ? '<div class="forest-grid" id="fGrid"></div>' : emptyLand()) +
+      (list.length ? (list.length > 300 ? '<div class="muted" style="font-size:11.5px;margin-bottom:8px;">树太多啦，这里只展示最近 300 棵 · 共 ' + list.length + ' 棵</div>' : '') +
+        '<div class="forest-grid" id="fGrid"></div>' : emptyLand()) +
     '</div>' +
 
     (list.length ? timelineHTML(list) : '') +
@@ -142,10 +151,12 @@ function emptyLand() {
 function renderGrid(list, today) {
   const grid = viewRoot.querySelector('#fGrid');
   if (!grid) return;
-  grid.innerHTML = list.map((t, i) => {
+  // DOM 性能保护：超过 300 棵时只渲染最近 300 棵（总数已在卡片头部标注）
+  const shown = list.filter(Boolean).slice(-300);
+  grid.innerHTML = shown.map((t, i) => {
     const cls = 'forest-tree' + (t.date === today ? ' forest-tree--today' : '');
     const style = 'animation-delay:' + Math.min(i * 40, 1200) + 'ms;--sway-dur:' + (3 + (i % 5) * 0.6) + 's;--sway-delay:' + (i % 7) * 0.4 + 's';
-    return '<div class="' + cls + '" style="' + style + '" title="' + SL.esc(t.date) + ' · ' + (t.minutes || 0) + ' 分钟">' +
+    return '<div class="' + cls + '" style="' + style + '" title="' + SL.esc(t.date || '') + ' · ' + (t.minutes || 0) + ' 分钟">' +
       treeSVG(t.species) +
       (t.date === today ? '<span class="forest-tree__dot"></span>' : '') +
       '</div>';
@@ -153,7 +164,7 @@ function renderGrid(list, today) {
 }
 
 function timelineHTML(list) {
-  const recent = list.slice(-10).reverse();
+  const recent = list.filter(Boolean).slice(-10).reverse();
   return '<div class="card card--pad fade-up"><h2 class="forest-h2">' + SL.icon('clock', 16) + ' 最近种下的树</h2>' +
     '<ul class="forest-timeline">' +
     recent.map(t => {

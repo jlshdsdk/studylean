@@ -10,6 +10,16 @@ const meta = { id: 'quote', title: '每日一句', icon: 'quote', order: 20 };
 let cleanup = [];
 let destroyed = false;
 
+/* 收藏以 text 为唯一键；旧数据/导入数据可能出现重复项，读取时去重展示 */
+function favsUnique() {
+  const seen = new Set();
+  return (SL.getData('quote').favs || []).filter(f => {
+    if (!f || !f.text || seen.has(f.text)) return false;
+    seen.add(f.text);
+    return true;
+  });
+}
+
 function render(container) {
   cleanup = [];
   destroyed = false;
@@ -35,7 +45,8 @@ function render(container) {
 
     function drawCard(list, i) {
       const q = list[i];
-      const isFav = (SL.getData('quote').favs || []).some(f => f.text === q.text);
+      const favs = favsUnique();
+      const isFav = favs.some(f => f.text === q.text);
       const tagLabel = { kaoyan: '考研', fitness: '减脂', discipline: '自律', general: '通用' }[q.tag] || '通用';
       body.innerHTML =
         '<div class="card card--pad q-main-card pop-in">' +
@@ -48,9 +59,9 @@ function render(container) {
         '<button class="btn ' + (isFav ? 'btn--primary' : 'btn--ghost') + '" id="qFav">' + SL.icon('heart', 15) + (isFav ? ' 已收藏' : ' 收藏') + '</button>' +
         '<button class="btn btn--ghost" id="qCopy">复制</button></div></div>' +
 
-        '<h3 style="margin:20px 0 10px;">我的收藏（' + (SL.getData('quote').favs || []).length + '）</h3>' +
+        '<h3 style="margin:20px 0 10px;">我的收藏（' + favs.length + '）</h3>' +
         '<div class="q-favs">' +
-        ((SL.getData('quote').favs || []).map(f =>
+        (favs.map(f =>
           '<div class="card card--pad q-fav-card">' +
           '<p style="margin:0 0 6px;">' + SL.esc(f.text) + '</p>' +
           '<div class="muted" style="font-size:11.5px;display:flex;align-items:center;gap:8px;">' +
@@ -69,16 +80,17 @@ function render(container) {
       });
       body.querySelector('#qFav').addEventListener('click', () => {
         const d = SL.getData('quote');
-        d.favs = d.favs || [];
+        d.favs = favsUnique(); // 写回前先去重，杜绝重复键累积
         const exist = d.favs.findIndex(f => f.text === q.text);
         if (exist >= 0) {
           d.favs.splice(exist, 1);
           SL.toast('已取消收藏', 'info');
         } else {
-          d.favs.unshift({ text: q.text, by: q.by, tag: q.tag, ts: Date.now() });
+          d.favs.unshift({ text: q.text, by: q.by || '', tag: q.tag || 'general', ts: Date.now() });
           SL.toast('已收藏', 'success');
-          const rect = body.querySelector('#qFav').getBoundingClientRect();
-          SL.confetti(rect.left + rect.width / 2, rect.top);
+          const btn = body.querySelector('#qFav');
+          const rect = btn ? btn.getBoundingClientRect() : { left: innerWidth / 2, top: 80, width: 0 };
+          SL.confetti?.(rect.left + rect.width / 2, rect.top);
         }
         SL.setData('quote', d, true);
         drawCard(list, i);
@@ -106,7 +118,8 @@ function render(container) {
       });
       body.querySelectorAll('[data-unfav]').forEach(b => b.addEventListener('click', () => {
         const d = SL.getData('quote');
-        d.favs = d.favs.filter(f => f.text !== b.dataset.unfav);
+        // 防御导入数据 favs 非数组：先归一为空数组再过滤
+        d.favs = (Array.isArray(d.favs) ? d.favs : []).filter(f => f && f.text !== b.dataset.unfav);
         SL.setData('quote', d, true);
         drawCard(list, i);
       }));

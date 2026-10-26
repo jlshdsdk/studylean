@@ -36,7 +36,7 @@ function render(container, params) {
         '<span class="tag tag--red">' + phaseLabel(exam) + '</span></div>' +
         '<div class="dash-countdown" id="dashCd">' + countdownHTML(exam) + '</div>' +
         '<div class="progress-bar" style="margin-top:14px;"><div class="progress-bar__fill" style="width:' + examProgress(exam) + '%"></div></div>' +
-        '<div class="muted" style="font-size:11.5px;margin-top:6px;">' + exam.date + ' · 总进度 ' + Math.round(examProgress(exam)) + '%</div>'
+        '<div class="muted" style="font-size:11.5px;margin-top:6px;">' + SL.esc(exam.date) + ' · 总进度 ' + Math.round(examProgress(exam)) + '%</div>'
       : '<div class="empty-state empty-state--sm">' + SL.icon('countdown', 36) + '<p>还没有考试倒计时</p>' +
         '<button class="btn btn--primary btn--sm" data-go="countdown">去设置</button></div>') +
     '</div>' +
@@ -150,7 +150,8 @@ function render(container, params) {
     data.todayIndex = -1;
     SL.setData('quote', data, true);
     const nq = todayQuote();
-    container.querySelector('#dashQuote').textContent = nq.text;
+    const qEl = container.querySelector('#dashQuote');
+    if (qEl) qEl.textContent = nq.text;
   });
   const favBtn = container.querySelector('#dashQuoteFav');
   if (favBtn) favBtn.addEventListener('click', () => {
@@ -217,13 +218,15 @@ function dayCount() {
   return Math.max(1, Math.floor((Date.now() - created) / 86400000) + 1);
 }
 function nearestExam() {
-  const exams = (SL.getData('countdown').exams || []).slice();
+  const exams = (SL.getData('countdown').exams || []).filter(e => isFinite(new Date((e.date || '') + 'T23:59:59').getTime()));
   const now = Date.now();
   exams.sort((a, b) => new Date(a.date + 'T23:59:59').getTime() - new Date(b.date + 'T23:59:59').getTime());
   return exams.find(e => new Date(e.date + 'T23:59:59').getTime() >= now) || exams[exams.length - 1] || null;
 }
 function phaseLabel(exam) {
-  const days = Math.ceil((new Date(exam.date + 'T23:59:59') - Date.now()) / 86400000);
+  const ts = new Date(exam.date + 'T23:59:59').getTime();
+  if (!isFinite(ts)) return '日期无效';
+  const days = Math.ceil((ts - Date.now()) / 86400000);
   if (days < 0) return '已结束';
   if (days <= 30) return '考前冲刺';
   if (days <= 100) return '强化期';
@@ -232,6 +235,9 @@ function phaseLabel(exam) {
 }
 function countdownHTML(exam) {
   const target = new Date(exam.date + 'T23:59:59').getTime();
+  if (!isFinite(target)) {
+    return '<div class="muted" style="padding:8px 0;">考试日期无效，请编辑修正</div>';
+  }
   const diff = Math.max(0, target - Date.now());
   const d = Math.floor(diff / 86400000);
   const h = Math.floor(diff % 86400000 / 3600000);
@@ -245,7 +251,10 @@ function countdownHTML(exam) {
 function examProgress(exam) {
   const created = exam.createdAt || new Date(exam.date).getTime() - 300 * 86400000;
   const end = new Date(exam.date + 'T23:59:59').getTime();
-  const p = (Date.now() - created) / (end - created) * 100;
+  const span = end - created;
+  // 已结束/非法日期：span ≤ 0 或 NaN 时避免除零与 NaN 传播
+  if (!isFinite(span) || span <= 0) return 100;
+  const p = (Date.now() - created) / span * 100;
   return Math.max(0, Math.min(100, p));
 }
 function totalPomodoros() {
@@ -261,9 +270,13 @@ function kcalBudget() {
   // Mifflin-St Jeor，体重取最新记录 kg，无记录兜底 65（与 calories 模块统一）
   const recs = (w.records || []).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   const kg = recs.length ? (parseFloat(recs[recs.length - 1].kg) || 65) : 65;
-  const bmr = 10 * kg + 6.25 * (p.heightCm || 170) - 5 * (p.age || 22) + (p.gender === 'female' ? -161 : 5);
+  // profile 字段可能缺失/为非法值：逐一兜底，防 NaN 传播到预算与进度环
+  const hCm = parseFloat(p.heightCm) || 170;
+  const age = parseFloat(p.age) || 22;
+  const act = parseFloat(p.activity) || 1.375;
+  const bmr = 10 * kg + 6.25 * hCm - 5 * age + (p.gender === 'female' ? -161 : 5);
   // 下限 1 防止 profile 异常（activity=0 等）导致除零 / 负预算
-  return Math.max(1, Math.round(bmr * (p.activity || 1.375) - 300));
+  return Math.max(1, Math.round(bmr * act - 300));
 }
 function kcalBudgetStatus(kcal) {
   const b = kcalBudget();

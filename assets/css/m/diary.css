@@ -20,10 +20,21 @@
   font-size: 12px; color: var(--fg-muted);
   margin-bottom: 8px;
 }
-.diary-card__date { font-weight: 600; color: var(--accent); }
-.diary-card__mood { flex: 1; }
+.diary-card__date { font-weight: 600; color: var(--accent); flex: none; }
+/* 心情/天气 emoji：不参与换行截断，基线对齐，长标签省略 */
+.diary-card__mood {
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 2px;
+  line-height: 1.2;
+}
+.diary-card__mood > * { flex: none; }
+/* 移动端触摸无 hover，操作钮以卡片按压态兜底 */
+.diary-card:active .row-actions { opacity: 1; }
 .diary-card .row-actions { opacity: 0; }
 .diary-card:hover .row-actions { opacity: 1; }
+/* MG-05: touch devices have no hover; keep actions visible (consistent with components.css row rule) */
+@media (hover: none) { .diary-card .row-actions { opacity: 1; } }
 
 .diary-card__title { margin-bottom: 4px; font-size: 15.5px; }
 .diary-card__excerpt {
@@ -54,19 +65,24 @@
 }
 .diary-emoji.is-on { border-color: var(--accent); background: var(--accent-soft); }
 
-/* 阅读视图：纸张质感（bg-inset + 微纹理 repeating-gradient 横线） */
+/* 阅读视图：纸张质感（bg-inset + 微纹理 repeating-gradient 横线）
+   行高 1.9 提升长文可读性；最大宽 640px 阅读区在模态内水平居中 */
 .diary-reader {
   max-height: 50vh; overflow-y: auto;
-  font-size: 14.5px; line-height: 1.8; white-space: normal;
-  padding: 14px 16px;
+  font-size: 14.5px; line-height: 1.9; white-space: normal;
+  padding: 16px 20px;
+  max-width: 640px;
+  margin: 0 auto;
   background:
     repeating-linear-gradient(0deg,
-      transparent 0 25px,
-      rgba(var(--accent-raw), 0.07) 25px 26px),
+      transparent 0 27px,
+      rgba(var(--accent-raw), 0.07) 27px 28px),
     var(--bg-inset);
   border-radius: 10px;
   border: 1px solid var(--border);
 }
+/* 横线纹理间距与行高 1.9（约 27.5px）对齐，文字坐在线上更整齐 */
+.diary-reader > br + * { line-height: inherit; }
 
 /* ===== BE-04 美化 ===== */
 
@@ -79,7 +95,10 @@
   background: linear-gradient(180deg, var(--accent), var(--accent-2));
   border-radius: 4px 0 0 4px;
   opacity: 0.85;
+  transition: width var(--tr-fast), opacity var(--tr-fast);
 }
+/* hover 书脊条加宽 4→6px，加深存在感 */
+.diary-card:hover::before { width: 6px; opacity: 1; }
 
 /* 字数统计：字符进度微条（渐变 chip；比例填充需 JS 钩子，此处为装饰性微条） */
 #dWords {
@@ -100,4 +119,18 @@
 /* 本模块减动效兜底（base.css 已有全局开关，此处针对新增动画显式关闭） */
 @media (prefers-reduced-motion: reduce) {
   .diary-emoji:hover { animation: none; transform: translateY(-2px); }
+  .diary-card::before { transition: none; }
+}
+
+/* 移动端微调：375px 下阅读区去左右内边距浪费，卡片 padding 收紧 */
+@media (max-width: 400px) {
+  .diary-reader { padding: 14px 14px; max-width: none; }
+}
+
+/* MP-09：375px 工具栏防溢出——搜索框允许收缩到 0 基线（flex:1 + min-width:0），
+   按钮/搜索框同行可换行，长 placeholder 不撑破容器 */
+@media (max-width: 480px) {
+  .diary-toolbar { flex-wrap: nowrap; }
+  .diary-search { min-width: 0; flex: 1 1 auto; }
+  .diary-search .input { min-width: 0; width: 100%; }
 }

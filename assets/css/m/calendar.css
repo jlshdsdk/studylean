@@ -31,6 +31,21 @@
   margin-bottom: 14px;
 }
 .cal-nav b { font-size: 16px; }
+/* 月导航箭头按钮化：38px 圆角方块，hover 轻浮 + 图标旋转 */
+#calPrev, #calNext {
+  width: 38px; height: 38px;
+  padding: 0;
+  border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background var(--tr-fast), border-color var(--tr-fast),
+              color var(--tr-fast), transform var(--tr-fast);
+}
+#calPrev:hover, #calNext:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
 
 /* ===== 星期表头 ===== */
 .cal-weekrow {
@@ -146,9 +161,25 @@
 }
 
 @media (max-width: 375px) {
-  .cal-cell { min-height: 46px; }
+  .cal-cell { min-height: 44px; }
+  .cal-cell__num { font-size: 12px; }
   .cal-statbar__inner { gap: 16px; }
+  #calPrev, #calNext { width: 34px; height: 34px; }
 }
+
+/* MP-09：375px 月历防溢出——gap 收窄 + 格内 padding 收紧，保证 7 列完整可见。
+   375 视口 - 28 (sl-view padding) - 36 (card padding) ≈ 311px 内容宽：
+   7×(43px 格) + 6×1px gap + 边框 ≈ 307px，安全放下 */
+@media (max-width: 480px) {
+  .cal-weekrow, .cal-grid { gap: 1px; }
+  .cal-cell { padding: 5px 1px 4px; }
+  .cal-cell__dots { gap: 2px; }
+  .cal-dot { width: 6px; height: 6px; }
+}
+
+/* 四色圆点 hover 放大（触屏无 hover，点按态兜底） */
+.cal-dot { transition: transform var(--tr-fast); }
+.cal-cell:hover .cal-dot, .cal-cell:active .cal-dot { transform: scale(1.35); }
 
 /* ===== BE-04 美化 ===== */
 
@@ -172,12 +203,22 @@
 .cal-dot[style*="--c-orange"] { box-shadow: 0 0 5px 0 var(--c-orange); }
 .cal-dot[style*="--c-purple"] { box-shadow: 0 0 5px 0 var(--c-purple); }
 
-/* 选中日详情面板：fadeUp 滑入动画 */
+/* 选中日详情面板：fadeUp 滑入动画 + 左侧 3px accent 竖条（与内容基线对齐） */
 @keyframes cal-detail-fadeup {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .cal-detail { animation: cal-detail-fadeup 0.35s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.cal-detail::before {
+  content: '';
+  position: absolute; left: 0; top: 18px; bottom: 18px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  opacity: 0.8;
+}
+.cal-detail { overflow: hidden; padding-left: 16px; }
+.cal-detail__head { padding-left: 2px; }
 
 /* 月份切换按钮：hover 图标旋转（chevron 微转向暗示切换方向） */
 #calPrev:hover svg { transform: rotate(-14deg); }
@@ -196,5 +237,7 @@
 /* BE-04: 减动效兜底（base.css 有全局开关） */
 @media (prefers-reduced-motion: reduce) {
   .cal-detail { animation: none; }
+  .cal-detail::before { opacity: 1; }
   #calToday:hover { transform: none; }
+  .cal-dot, #calPrev, #calNext { transition: none; }
 }

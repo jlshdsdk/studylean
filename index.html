@@ -2,17 +2,40 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>研轻 StudyLean — 上岸，也上秤。</title>
 <meta name="description" content="考研×减脂双线自律管理：倒计时、番茄钟、卡路里、体重曲线，20+ 模块全免费，数据本地私有。">
 <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 <script src="assets/js/store.js"></script>
 <script src="assets/js/auth.js"></script>
+<script>
+// 全局错误兜底：toast 提示且不吞 console（保留原报告行为供调试）
+(function () {
+  'use strict';
+  var lastErrTs = 0;
+  function report(msg) {
+    var now = Date.now();
+    if (now - lastErrTs < 3000) return; // 3s 节流，防错误风暴刷屏
+    lastErrTs = now;
+    try {
+      if (window.SL && typeof SL.toast === 'function') SL.toast('页面出现异常：' + msg, 'error');
+      else console.warn('[global-error]', msg);
+    } catch (e) { /* toast 自身异常不再扩散 */ }
+  }
+  window.addEventListener('error', function (e) { report(String(e.message || '脚本错误')); });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    report(r && r.message ? String(r.message) : String(r || '异步操作失败'));
+  });
+})();
+</script>
 <style>
 /* ================= 研轻入口页（独享样式，不进共享 css） ================= */
 :root {
   --accent: #5B6CFF;
   --accent-deep: #4353E8;
+  --accent-real: #4353E8;
+  --tint: 74, 85, 162; /* 阴影统一色相（靛灰） */
   --accent-soft: rgba(91, 108, 255, .10);
   --mint: #2DD4BF;
   --pink: #FF7AB6;
@@ -21,8 +44,8 @@
   --bg: #F5F7FF;
   --card: rgba(255, 255, 255, .72);
   --border: rgba(91, 108, 255, .16);
-  --shadow-1: 0 8px 32px rgba(74, 85, 162, .10);
-  --shadow-2: 0 16px 48px rgba(74, 85, 162, .16);
+  --shadow-1: 0 8px 32px rgba(var(--tint), .10);
+  --shadow-2: 0 16px 48px rgba(var(--tint), .16);
   --radius: 16px;
   --tr: 0.25s ease;
 }
@@ -53,7 +76,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 76px 24px 56px;
+  padding: 72px 24px 56px;
 }
 
 /* ---- 背景层 1：等距圆点阵 SVG pattern（dot 0.5px / 间距 28px / #5B6CFF 6%）---- */
@@ -72,8 +95,8 @@ body {
 .bg-grid {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-image:
-    linear-gradient(rgba(91,108,255,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(91,108,255,.03) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--accent) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 3%, transparent) 1px, transparent 1px);
   background-size: 3px 3px;
 }
 
@@ -81,7 +104,7 @@ body {
 .bg-blob { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; filter: blur(60px); }
 .bg-blob--a {
   width: 520px; height: 520px; top: -140px; left: -120px;
-  background: radial-gradient(circle, rgba(91,108,255,.12), transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
   animation: drift-a 60s ease-in-out infinite;
 }
 .bg-blob--b {
@@ -105,16 +128,16 @@ body {
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 10;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 28px;
-  background: rgba(245, 247, 255, .68);
+  padding: 16px 28px;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(91, 108, 255, .10);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
   animation: rise .6s ease both;
 }
 .topbar__brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; letter-spacing: .5px; text-decoration: none; color: var(--fg); }
 .topbar__brand img { width: 28px; height: 28px; border-radius: 8px; }
 .topbar__brand small { font-size: 11.5px; font-weight: 600; color: var(--fg-muted); letter-spacing: 2px; }
-.topbar__actions { display: flex; align-items: center; gap: 18px; }
+.topbar__actions { display: flex; align-items: center; gap: 16px; }
 .topbar__link {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; font-weight: 600; color: var(--fg-muted);
@@ -127,10 +150,10 @@ body {
   border-radius: 999px; border: 0; cursor: pointer; text-decoration: none;
   font: inherit; font-size: 13px; font-weight: 700; color: #fff;
   background: linear-gradient(135deg, var(--accent), var(--accent-deep));
-  box-shadow: 0 4px 14px rgba(91, 108, 255, .30);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 30%, transparent);
   transition: transform var(--tr), box-shadow var(--tr);
 }
-.topbar__cta:hover { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(91, 108, 255, .38); }
+.topbar__cta:hover { transform: translateY(-1px); box-shadow: 0 7px 18px color-mix(in srgb, var(--accent) 38%, transparent); }
 
 /* ================= 主布局 ================= */
 .stage {
@@ -143,10 +166,21 @@ body {
 }
 
 /* ================= 左侧 hero ================= */
+/* 入场序列：hero 内元素 stagger fadeUp，0.05s 递增 */
 .hero { animation: rise .7s ease both; }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.hero > * {
+  opacity: 0;
+  animation: fade-up .55s cubic-bezier(.4, 0, .2, 1) forwards;
+}
+.hero > :nth-child(1) { animation-delay: .05s; }
+.hero > :nth-child(2) { animation-delay: .10s; }
+.hero > :nth-child(3) { animation-delay: .15s; }
+.hero > :nth-child(4) { animation-delay: .20s; }
+.hero > :nth-child(5) { animation-delay: .25s; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-.hero__brand { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+.hero__brand { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
 .hero__brand img {
   width: 48px; height: 48px; border-radius: 12px; box-shadow: var(--shadow-1);
   animation: logo-float 3.6s ease-in-out infinite;
@@ -160,11 +194,12 @@ body {
 .hero__brand-name small { display: block; font-size: 11.5px; font-weight: 500; color: var(--fg-muted); letter-spacing: 2px; }
 
 .hero__slogan {
-  font-size: clamp(34px, 5vw, 52px);
+  /* 字号梯度：主标语 40px 级（clamp 流式，min 40px/9vw 由窄屏断点保证） */
+  font-size: clamp(34px, 5vw, 40px);
   font-weight: 900;
-  line-height: 1.18;
+  line-height: 1.2;
   letter-spacing: 1px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .hero__slogan .u {
   background: linear-gradient(120deg, var(--accent), var(--mint));
@@ -172,11 +207,11 @@ body {
   -webkit-text-fill-color: transparent; color: transparent;
 }
 
-/* 打字机金句：纯 CSS steps 方案，--char-count 变量 */
+/* 打字机金句（副标语 20px 级）：纯 CSS steps 方案，--char-count 变量 */
 .typeline {
-  height: 1.7em; font-size: clamp(17px, 2.2vw, 21px);
+  height: 1.7em; font-size: clamp(17px, 2.2vw, 20px);
   color: var(--fg-muted); font-weight: 600;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 /* 三条金句 grid 叠放于同一格：绝对定位会随内容宽度抖动，grid 堆叠更稳 */
 .typeline__viewport { display: grid; }
@@ -208,20 +243,20 @@ body {
 .hero__points {
   list-style: none;
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-  margin-bottom: 34px;
+  margin-bottom: 32px;
 }
 .hero__points li {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
-  padding: 16px 15px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 16px;
   background: rgba(255, 255, 255, .62);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 4px 18px rgba(74, 85, 162, .07);
+  box-shadow: 0 4px 18px color-mix(in srgb, rgb(var(--tint)) 7%, transparent);
   font-size: 13.5px; line-height: 1.55; color: var(--fg); font-weight: 500;
   transition: transform var(--tr), box-shadow var(--tr);
 }
-.hero__points li:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(74, 85, 162, .13); }
+.hero__points li:hover { transform: translateY(-3px); box-shadow: 0 10px 26px color-mix(in srgb, rgb(var(--tint)) 13%, transparent); }
 .hero__points .dot {
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; border-radius: 10px; flex: none;
@@ -233,21 +268,21 @@ body {
 .hero__points li:nth-child(3) .dot { color: var(--pink); background: rgba(255, 122, 182, .12); }
 .hero__points b { color: var(--accent); }
 
-/* 证言轮播：6 条，纯 CSS 36s 交叉淡入 */
+/* 证言轮播（正文 15px 级）：6 条，纯 CSS 36s 交叉淡入 */
 .testimonials {
   position: relative; height: 96px;
   border-left: 3px solid var(--accent);
-  padding-left: 18px;
+  padding-left: 16px;
 }
 .testimonial {
-  position: absolute; inset: 0; padding-left: 18px; margin-left: -21px;
+  position: absolute; inset: 0; padding-left: 16px; margin-left: -19px;
   border-left: 3px solid transparent;
   display: flex; flex-direction: column; justify-content: center; gap: 8px;
   opacity: 0; pointer-events: none;
   animation: t-fade 36s linear infinite;
   animation-delay: calc(var(--i) * 6s);
 }
-.testimonial blockquote { font-size: 16px; font-weight: 600; line-height: 1.5; }
+.testimonial blockquote { font-size: 15px; font-weight: 600; line-height: 1.5; }
 .testimonial cite { font-style: normal; font-size: 13px; color: var(--fg-muted); }
 .testimonial cite b { color: var(--accent); font-weight: 700; }
 @keyframes t-fade {
@@ -258,20 +293,20 @@ body {
 
 /* 证言底部指示点：随 --i 同步点亮 */
 .testimonials__dots {
-  position: absolute; left: 18px; bottom: -4px;
-  display: flex; gap: 7px;
+  position: absolute; left: 16px; bottom: -4px;
+  display: flex; gap: 8px;
 }
 .testimonials__dots span {
   width: 7px; height: 7px; border-radius: 999px;
-  background: rgba(91, 108, 255, .22);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
   animation: dot-pulse 36s linear infinite;
   animation-delay: calc(var(--i) * 6s);
   transition: background var(--tr);
 }
 @keyframes dot-pulse {
-  0%        { background: rgba(91, 108, 255, .22); width: 7px; }
+  0%        { background: color-mix(in srgb, var(--accent) 22%, transparent); width: 7px; }
   2%, 12%   { background: var(--accent); width: 18px; }
-  16.6%,100%{ background: rgba(91, 108, 255, .22); width: 7px; }
+  16.6%,100%{ background: color-mix(in srgb, var(--accent) 22%, transparent); width: 7px; }
 }
 
 /* ================= 右侧登录/注册卡片 ================= */
@@ -281,11 +316,12 @@ body {
   -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  /* 双层阴影：近处柔和扩散 + 远处大面积晕染 */
+  /* 主角感：三层阴影——近距柔和 + 远距大面积晕染 + 顶部 1px 内高光描边 */
   box-shadow:
-    0 4px 14px rgba(74, 85, 162, .08),
-    0 24px 64px rgba(74, 85, 162, .18);
-  padding: 32px 30px;
+    0 0 0 1px rgba(255, 255, 255, .45) inset,
+    0 4px 14px color-mix(in srgb, rgb(var(--tint)) 8%, transparent),
+    0 24px 64px color-mix(in srgb, rgb(var(--tint)) 18%, transparent);
+  padding: 32px;
   position: relative;
 }
 
@@ -298,7 +334,7 @@ body {
   font: inherit; font-size: 14px; font-weight: 700; color: var(--fg-muted);
   transition: all var(--tr);
 }
-.card__tab.is-active { background: #fff; color: var(--accent); box-shadow: 0 2px 8px rgba(74,85,162,.12); }
+.card__tab.is-active { background: #fff; color: var(--accent); box-shadow: 0 2px 8px color-mix(in srgb, rgb(var(--tint)) 12%, transparent); }
 /* 激活 Tab 底部滑动下划线：宽度随激活项位置过渡 */
 .card__tab::after {
   content: ""; position: absolute; left: 50%; bottom: 3px;
@@ -309,9 +345,9 @@ body {
 }
 .card__tab.is-active::after { width: 38%; }
 
-.field { margin-bottom: 14px; }
+.field { margin-bottom: 16px; }
 .field label {
-  display: block; font-size: 13px; font-weight: 700; color: var(--fg-muted); margin-bottom: 6px;
+  display: block; font-size: 13px; font-weight: 700; color: var(--fg-muted); margin-bottom: 8px;
   transition: color var(--tr), transform var(--tr);
   transform-origin: left center;
 }
@@ -324,14 +360,14 @@ body {
   padding: 0 12px; font: inherit; font-size: 14px; color: var(--fg);
   outline: none; transition: border-color var(--tr), box-shadow var(--tr), background var(--tr);
 }
-/* focus 光晕增强：双层 ring + 微亮背景 */
+/* focus 光晕增强（统一 3px/6px 双 ring）：微亮背景 */
 .field input:focus {
   border-color: var(--accent);
   background: #fff;
   box-shadow:
     0 0 0 3px var(--accent-soft),
-    0 0 0 6px rgba(91, 108, 255, .07),
-    0 2px 10px rgba(91, 108, 255, .10);
+    0 0 0 6px color-mix(in srgb, var(--accent) 7%, transparent),
+    0 2px 10px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .field--hidden { display: none; }
 
@@ -349,23 +385,28 @@ body {
 }
 .btn--primary {
   color: #fff;
+  /* 质感：渐变 + 内高光 1px + 主色投影 */
   background: linear-gradient(135deg, var(--accent), var(--accent-deep));
   background-size: 130% 130%;
   background-position: 0% 50%;
-  box-shadow: 0 6px 20px rgba(91,108,255,.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 /* hover 渐变位移 + 按下反馈 */
 .btn--primary:hover {
   transform: translateY(-2px);
   background-position: 100% 50%;
-  box-shadow: 0 10px 26px rgba(91,108,255,.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    0 10px 26px color-mix(in srgb, var(--accent) 42%, transparent);
 }
-.btn--primary:active { transform: translateY(0) scale(.97); box-shadow: 0 3px 10px rgba(91,108,255,.30); transition-duration: .08s; }
+.btn--primary:active { transform: translateY(0) scale(.97); box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 30%, transparent); transition-duration: .08s; }
 .btn--ghost { background: transparent; color: var(--fg-muted); font-weight: 600; height: 40px; margin-top: 10px; }
 .btn--ghost:hover { color: var(--accent); background: var(--accent-soft); }
 .btn[disabled] { opacity: .6; cursor: not-allowed; transform: none !important; }
 
-.card__tip { margin-top: 14px; font-size: 12px; color: var(--fg-muted); text-align: center; line-height: 1.6; }
+.card__tip { margin-top: 16px; font-size: 12px; color: var(--fg-muted); text-align: center; line-height: 1.6; }
 
 /* ================= 页脚 ================= */
 .footer {
@@ -381,26 +422,44 @@ body {
 /* ================= 响应式 ================= */
 @media (max-width: 900px) {
   .stage {
-    grid-template-columns: 1fr; gap: 36px; max-width: 460px;
+    grid-template-columns: 1fr; gap: 32px; max-width: 460px;
     /* 垂直堆叠过渡：两列变一列时柔和滑入 */
     animation: stack-in .55s ease both;
   }
   @keyframes stack-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
-  .hero__slogan { font-size: 34px; }
-  .hero__points { grid-template-columns: 1fr; gap: 10px; }
+  /* 标语流式字号：min(40px, 9vw)，窄屏不折行溢出 */
+  .hero__slogan { font-size: min(40px, 9vw); }
+  .hero__points { grid-template-columns: 1fr; gap: 8px; }
   .hero__points li { flex-direction: row; align-items: center; }
   .testimonials { height: 88px; }
-  .bg-blob--a { width: 340px; height: 340px; }
-  .bg-blob--b { width: 300px; height: 300px; }
+  /* 光斑小屏收缩，避免溢出触发横向滚动 */
+  .bg-blob--a { width: 340px; height: 340px; top: -120px; left: -140px; }
+  .bg-blob--b { width: 300px; height: 300px; bottom: -120px; right: -120px; }
 }
 
 @media (max-width: 480px) {
-  body { padding: 68px 16px 44px; }
-  .topbar { padding: 10px 16px; }
+  body { padding: 64px 16px 40px; }
+  /* iOS Safari 聚焦 font-size<16px 的输入框会自动放大页面，移动端统一 16px */
+  .field input { font-size: 16px; }
+  .topbar { padding: 8px 16px; }
   .topbar__link span { display: none; } /* 只留 GitHub 图标 */
-  .testimonial blockquote { font-size: 13.5px; }
+  /* MP-08 修复：375px 下品牌字 + STUDY×LEAN + GitHub + CTA 同行总宽超 375，
+     CTA"进入应用"被压成两行。窄屏收 CTA 字距并允许品牌 small 换行省略 */
+  .topbar__cta { padding: 0 12px; white-space: nowrap; font-size: 12.5px; }
+  .topbar__brand small { display: none; } /* 375px 只留"研轻 StudyLean"主品牌 */
+  /* 窄屏垂直节奏：16 基准 */
+  .stage { gap: 24px; }
+  .hero__brand { margin-bottom: 24px; }
+  .hero__points li { padding: 12px 14px; }
+  /* 证言轮播窄屏字号（13/12 梯度） */
+  .testimonial blockquote { font-size: 13px; }
   .testimonial cite { font-size: 12px; }
-  .card { padding: 26px 20px; }
+  .testimonials { height: 84px; }
+  /* 光斑进一步收缩，保证 375px 宽无横向滚动 */
+  .bg-blob--a { width: 240px; height: 240px; filter: blur(48px); }
+  .bg-blob--b { width: 210px; height: 210px; filter: blur(48px); }
+  .card { padding: 24px 20px; }
+  .footer { margin-top: 40px; }
 }
 </style>
 </head>

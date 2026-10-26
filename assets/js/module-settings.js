@@ -154,8 +154,12 @@ function doImport(fileInput) {
     try {
       const payload = JSON.parse(reader.result);
       if (payload.app !== 'studylean' || !payload.data) throw new Error('not a studylean backup');
-      if (!await SL.confirm('导入会覆盖当前全部数据（' + Object.keys(payload.data).length + ' 个数据域），确定继续？')) return;
-      SL.state.data = payload.data;
+      // 形状校验：data 必须是 plain object，防止损坏/恶意备份注入异常结构
+      const d = payload.data;
+      if (typeof d !== 'object' || Array.isArray(d) || d === null) throw new Error('bad data shape');
+      if (!await SL.confirm('导入会覆盖当前全部数据（' + Object.keys(d).length + ' 个数据域），确定继续？')) return;
+      // 过经过 mergeDefaults 合并：丢弃非法键（含原型污染键），缺失域自动补默认值，导入更健壮
+      SL.state.data = (typeof SL.mergeDefaults === 'function') ? SL.mergeDefaults(d) : d;
       SL.saveNow();
       SL.toast('导入成功，页面即将刷新', 'success');
       setTimeout(() => location.reload(), 900);
@@ -170,6 +174,8 @@ function doImport(fileInput) {
 async function doClear() {
   if (!await SL.confirm('⚠ 清空全部数据：所有模块记录将永久删除且无法恢复。真的要清空吗？')) return;
   if (!await SL.confirm('最后确认：真的全部清空？建议先导出备份。')) return;
+  // 先撤销未落盘的防抖写队列再删键，避免 150ms 内 pending 的旧数据被写回
+  if (typeof SL.cancelPendingSave === 'function') SL.cancelPendingSave();
   localStorage.removeItem('sl_data_v1');
   SL.toast('已清空，页面即将刷新', 'info');
   setTimeout(() => location.reload(), 900);

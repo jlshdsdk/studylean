@@ -8,7 +8,14 @@
 const meta = { id: 'reminder', title: '提醒中心', icon: 'bell', order: 21 };
 
 function render(container) {
-  const n = SL.getData('notifications').settings;
+  // 防御脏数据：settings 缺失或非对象时补全默认结构，避免 n.water 直接抛错
+  const nData = SL.getData('notifications');
+  if (!nData.settings || typeof nData.settings !== 'object') {
+    nData.settings = { water: true, waterGap: 90, stand: true, standGap: 45 };
+  }
+  const n = nData.settings;
+  if (n.waterGap == null) n.waterGap = 90;
+  if (n.standGap == null) n.standGap = 45;
 
   container.innerHTML =
     '<div class="view-header fade-up"><h1>提醒中心</h1>' +
@@ -60,8 +67,10 @@ function render(container) {
   /* 开关与间隔 */
   const bindSwitchRow = (sel, key) => {
     const el = container.querySelector(sel);
+    if (!el) return;
     el.addEventListener('click', () => {
       const d = SL.getData('notifications');
+      if (!d.settings || typeof d.settings !== 'object') d.settings = {};
       d.settings[key] = !d.settings[key];
       SL.setData('notifications', d);
       el.classList.toggle('is-on', d.settings[key]);
@@ -75,6 +84,7 @@ function render(container) {
   const bindGap = (sel, key) => {
     container.querySelectorAll(sel + ' .st-seg__btn').forEach(b => b.addEventListener('click', () => {
       const d = SL.getData('notifications');
+      if (!d.settings || typeof d.settings !== 'object') d.settings = {};
       d.settings[key] = Number(b.dataset.v);
       SL.setData('notifications', d);
       container.querySelectorAll(sel + ' .st-seg__btn').forEach(x => x.classList.toggle('is-on', x === b));

@@ -30,6 +30,11 @@
   }
 
   // ===== 密码哈希：SHA-256 + 随机盐（WebCrypto subtle.digest）=====
+  // file:// 下部分浏览器禁用 crypto.subtle（insecure context），显式探测并给出可操作的降级提示
+  function webCryptoAvailable() {
+    return !!(window.crypto && crypto.subtle && typeof crypto.subtle.digest === 'function');
+  }
+
   function randomSalt(len) {
     var n = len || 16;
     var bytes = new Uint8Array(n);
@@ -44,8 +49,8 @@
   }
 
   function sha256Hex(str) {
-    if (!window.crypto || !crypto.subtle) {
-      return Promise.reject(new Error('当前环境不支持 WebCrypto（需 HTTPS 或 localhost）'));
+    if (!webCryptoAvailable()) {
+      return Promise.reject(new Error('当前环境不支持 WebCrypto 加密（常见于 file:// 直接打开）。请通过 http:// 或 https:// 访问本页，例如本地运行 python -m http.server 后打开 localhost 地址。'));
     }
     var data = new TextEncoder().encode(str);
     return crypto.subtle.digest('SHA-256', data).then(function (buf) {
@@ -131,6 +136,11 @@
     writeJSON(SES_KEY, user);
     if (SL.state) SL.state.user = user;
     SL.emit('user', user);
+  }
+
+  // 会话形状校验：localStorage 被篡改为字符串/数字/数组时视为无会话
+  function validUser(u) {
+    return !!(u && typeof u === 'object' && !Array.isArray(u) && typeof u.name === 'string');
   }
 
   function makeUser(id, name, guest) {
@@ -250,9 +260,13 @@
       return user;
     },
 
-    /** 当前会话（无则 null）。 */
+    /** 当前会话（无则 null；被篡改的会话自动清除）。 */
     session: function () {
       var s = readJSON(SES_KEY, null);
+      if (!validUser(s)) {
+        try { localStorage.removeItem(SES_KEY); } catch (e) { /* noop */ }
+        s = null;
+      }
       if (SL.state) SL.state.user = s;
       return s;
     },

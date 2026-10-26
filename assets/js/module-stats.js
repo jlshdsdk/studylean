@@ -139,12 +139,14 @@ function sumPeriod(mode) {
   const sKey = SL.fmt.date(start);
   const eKey = SL.fmt.date(end);
 
-  const timerHist = SL.getData('timer').history || [];
+  const timerHist = Array.isArray(SL.getData('timer').history) ? SL.getData('timer').history : [];
   const focusMin = timerHist.reduce((s, r) => {
+    if (!r || r.start == null) return s;
     const k = SL.fmt.date(new Date(r.start));
     return (k >= sKey && k <= eKey) ? s + (r.minutes || 0) : s;
   }, 0);
   const pomodoros = timerHist.reduce((s, r) => {
+    if (!r || r.start == null) return s;
     const k = SL.fmt.date(new Date(r.start));
     return (k >= sKey && k <= eKey && (r.type === 'focus' || !r.type)) ? s + 1 : s;
   }, 0);
@@ -153,29 +155,31 @@ function sumPeriod(mode) {
   const habitItems = SL.getData('habits').items || [];
   const checkDates = {};
   habitItems.forEach(h => {
-    Object.keys(h.records || {}).forEach(d => { if (h.records[d]) checkDates[d] = true; });
+    if (!h || !h.records) return;
+    Object.keys(h.records).forEach(d => { if (h.records[d]) checkDates[d] = true; });
   });
   const checkDays = Object.keys(checkDates).filter(d => d >= sKey && d <= eKey).length;
 
-  const diaryCount = (SL.getData('diary').entries || []).filter(e => e.date >= sKey && e.date <= eKey).length;
+  const diaryCount = (SL.getData('diary').entries || []).filter(e => e && e.date >= sKey && e.date <= eKey).length;
 
   const calEntries = SL.getData('calories').entries || [];
   const kcalByDate = {};
   calEntries.forEach(e => {
-    if (e.date >= sKey && e.date <= eKey) kcalByDate[e.date] = (kcalByDate[e.date] || 0) + (e.kcal || 0);
+    if (e && e.date >= sKey && e.date <= eKey) kcalByDate[e.date] = (kcalByDate[e.date] || 0) + (e.kcal || 0);
   });
   const kcalDays = Object.keys(kcalByDate);
   const kcalAvg = kcalDays.length ? Math.round(kcalDays.reduce((s, d) => s + kcalByDate[d], 0) / kcalDays.length) : 0;
 
   const sportEntries = SL.getData('sport').entries || [];
   const sportKcal = sportEntries.reduce((s, e) => {
+    if (!e) return s;
     // e.date 已是 YYYY-MM-DD 本地键；经 new Date() 解析会在西时区偏移一天，直接用字符串比较
     const k = typeof e.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
       ? e.date : SL.fmt.date(new Date(e.date));
     return (k >= sKey && k <= eKey) ? s + (e.kcal || 0) : s;
   }, 0);
 
-  const waterDaily = SL.getData('water').daily || {};
+  const waterDaily = (d => (d && typeof d.daily === 'object' && d.daily) || {})(SL.getData('water'));
   const waterGoal = SL.getData('water').goal || 2000;
   let waterOk = 0;
   Object.keys(waterDaily).forEach(d => { if (d >= sKey && d <= eKey && (waterDaily[d] || 0) >= waterGoal) waterOk++; });
@@ -209,7 +213,9 @@ function statCell(icon, label, value, tag) {
 // 返回 map: {'YYYY-MM-DD': 分钟数}
 function focusMinutesByDate() {
   const map = {};
-  (SL.getData('timer').history || []).forEach(r => {
+  const hist = Array.isArray(SL.getData('timer').history) ? SL.getData('timer').history : [];
+  hist.forEach(r => {
+    if (!r || r.start == null) return;
     const k = SL.fmt.date(new Date(r.start));
     map[k] = (map[k] || 0) + (r.minutes || 0);
   });
@@ -375,7 +381,7 @@ function last14Dates() {
 function renderKcalLine(el) {
   const byDate = {};
   (SL.getData('calories').entries || []).forEach(e => {
-    if (e.date) byDate[e.date] = (byDate[e.date] || 0) + (e.kcal || 0);
+    if (e && e.date) byDate[e.date] = (byDate[e.date] || 0) + (e.kcal || 0);
   });
   const points = last14Dates().map(k => ({
     x: Number(k.slice(8)) + '日',
@@ -395,7 +401,11 @@ function renderWeightLine(el) {
     el.innerHTML = '<div class="empty-state empty-state--sm">' + SL.icon('scale', 36) + '<p>记录几天后这里会出现你的曲线</p></div>';
     return;
   }
-  const recent = recs.slice(-30);
+  const recent = recs.filter(r => r && r.kg != null).slice(-30);
+  if (!recent.length) {
+    el.innerHTML = '<div class="empty-state empty-state--sm">' + SL.icon('scale', 36) + '<p>记录几天后这里会出现你的曲线</p></div>';
+    return;
+  }
   const points = recent.map(r => ({
     x: (r.date || '').slice(5),
     y: parseFloat(r.kg) || 0,
@@ -411,21 +421,22 @@ function renderHabitRing(el) {
   const sKey = SL.fmt.date(start);
   const todayKey = SL.fmt.date(new Date());
 
-  // 本周计划：每个习惯 × 从周一到今天（含）的天数
+  // 本周计划：每个习惯 × 从周起始日到今天（含）的天数
   let done = 0, total = 0;
   if (items.length) {
-    // 先数日期范围
     const range = [];
     const t = new Date();
     for (let d = new Date(start); d <= t; d.setDate(d.getDate() + 1)) range.push(SL.fmt.date(d));
     items.forEach(h => {
+      if (!h) return;
+      const recs = (h.records && typeof h.records === 'object') ? h.records : {};
       range.forEach(k => {
         total++;
-        if (h.records && h.records[k]) done++;
+        if (recs[k]) done++;
       });
     });
   }
-  const pct = total ? Math.round(done / total * 100) : 0;
+  const pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
 
   if (!items.length) {
     el.innerHTML = '<div class="empty-state empty-state--sm">' + SL.icon('flame', 36) +

@@ -103,24 +103,24 @@ function calLegendDot(color, label) {
 /* --- 每日事件聚合 --- */
 // 返回 { marks: {green,blue,orange,purple} 数量, focusMin, checkCount, kcal, diary: [entry], weight }
 function dayInfo(dateKey) {
-  const timerHist = SL.getData('timer').history || [];
+  const timerHist = Array.isArray(SL.getData('timer').history) ? SL.getData('timer').history : [];
   let focusMin = 0, hasFocus = false;
   timerHist.forEach(r => {
-    if (SL.fmt.date(new Date(r.start)) === dateKey) { focusMin += r.minutes || 0; hasFocus = true; }
+    if (r && r.start != null && SL.fmt.date(new Date(r.start)) === dateKey) { focusMin += r.minutes || 0; hasFocus = true; }
   });
 
   let checkCount = 0, hasCheck = false;
   (SL.getData('habits').items || []).forEach(h => {
-    if (h.records && h.records[dateKey]) { checkCount++; hasCheck = true; }
+    if (h && h.records && h.records[dateKey]) { checkCount++; hasCheck = true; }
   });
 
   let kcal = 0, hasKcal = false;
   (SL.getData('calories').entries || []).forEach(e => {
-    if (e.date === dateKey) { kcal += e.kcal || 0; hasKcal = true; }
+    if (e && e.date === dateKey) { kcal += e.kcal || 0; hasKcal = true; }
   });
 
-  const diaryEntries = (SL.getData('diary').entries || []).filter(e => e.date === dateKey);
-  const weightRec = (SL.getData('weight').records || []).find(r => r.date === dateKey);
+  const diaryEntries = (SL.getData('diary').entries || []).filter(e => e && e.date === dateKey);
+  const weightRec = (SL.getData('weight').records || []).find(r => r && r.date === dateKey);
 
   return {
     focusMin, hasFocus, checkCount, hasCheck,
@@ -133,18 +133,19 @@ function drawStatBar(el) {
   // 本月统计：专注小时 / 打卡天数 / 日记数
   const prefix = curYear + '-' + SL.fmt.pad(curMonth + 1);
   let focusTotal = 0;
-  (SL.getData('timer').history || []).forEach(r => {
-    if ((SL.fmt.date(new Date(r.start)) || '').indexOf(prefix) === 0) focusTotal += r.minutes || 0;
+  (Array.isArray(SL.getData('timer').history) ? SL.getData('timer').history : []).forEach(r => {
+    if (r && r.start != null && (SL.fmt.date(new Date(r.start)) || '').indexOf(prefix) === 0) focusTotal += r.minutes || 0;
   });
 
   const checkDates = {};
   (SL.getData('habits').items || []).forEach(h => {
-    Object.keys(h.records || {}).forEach(d => {
+    if (!h || !h.records) return;
+    Object.keys(h.records).forEach(d => {
       if (h.records[d] && d.indexOf(prefix) === 0) checkDates[d] = true;
     });
   });
 
-  const diaryCount = (SL.getData('diary').entries || []).filter(e => e.date && e.date.indexOf(prefix) === 0).length;
+  const diaryCount = (SL.getData('diary').entries || []).filter(e => e && e.date && e.date.indexOf(prefix) === 0).length;
 
   el.innerHTML =
     '<div class="cal-statbar__inner">' +

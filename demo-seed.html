@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>研轻 · 截图引导</title>
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/layout.css">
+<link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<div style="max-width:520px;margin:80px auto;padding:32px;" class="card card--pad">
+  <h2>正在准备演示数据…</h2>
+  <p class="muted" id="st">初始化</p>
+</div>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/core.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+(function () {
+  var st = document.getElementById('st');
+  function log(s) { st.textContent = s; }
+  try {
+    log('写入会话');
+    localStorage.setItem('sl_session', JSON.stringify({ id: 'demo', name: '演示同学', guest: true, createdAt: Date.now() - 45 * 86400000 }));
+    SL.init();
+    var D = SL.state.data;
+    var today = SL.fmt.date(new Date());
+    function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return SL.fmt.date(d); }
+
+    log('倒计时');
+    D.countdown = { exams: [
+      { id: 'e1', name: '2027 考研', date: '2026-12-19', color: '#5B6CFF', icon: 'countdown', createdAt: Date.now() - 200 * 86400000, pinned: true },
+      { id: 'e2', name: '英语六级', date: '2026-12-12', color: '#14B8A6', icon: 'countdown', createdAt: Date.now() - 80 * 86400000 }
+    ] };
+
+    log('番茄/森林');
+    D.timer = { history: [], settings: { focusMin: 25, breakMin: 5 } };
+    for (var i = 0; i < 9; i++) {
+      D.timer.history.push({ id: 't' + i, start: Date.now() - 86400000 * (i % 7) - 3600000 * (i % 5), end: Date.now() - 86400000 * (i % 7), minutes: [25, 50, 25, 45, 25, 90, 25][i % 7], label: ['数学真题', '英语阅读', '专业课背诵', '政治刷题'][i % 4], type: 'focus' });
+    }
+    D.forest = { trees: D.timer.history.map(function (h, i) { return { id: 'f' + i, date: daysAgo(i % 7), minutes: h.minutes, species: ['sprout', 'pine', 'oak', 'ginkgo', 'maple', 'sakura'][i % 6] }; }) };
+
+    log('饮食');
+    D.calories = { entries: [
+      { id: 'c1', date: today, meal: 'breakfast', foodName: '全麦面包', kcal: 246, protein: 9, carb: 46, fat: 3, gram: 100 },
+      { id: 'c2', date: today, meal: 'breakfast', foodName: '鸡蛋', kcal: 147, protein: 13, carb: 2, fat: 10, gram: 100 },
+      { id: 'c3', date: today, meal: 'lunch', foodName: '鸡胸肉', kcal: 133, protein: 24, carb: 1, fat: 3, gram: 150 },
+      { id: 'c4', date: today, meal: 'lunch', foodName: '米饭', kcal: 174, protein: 4, carb: 39, fat: 0, gram: 150 },
+      { id: 'c5', date: today, meal: 'snack', foodName: '苹果', kcal: 53, protein: 0, carb: 14, fat: 0, gram: 200 }
+    ], customFoods: [] };
+
+    log('体重/运动');
+    D.weight = { records: [
+      { id: 'w1', date: daysAgo(30), kg: 68.5, bodyFat: 24 }, { id: 'w2', date: daysAgo(21), kg: 67.2, bodyFat: 23 },
+      { id: 'w3', date: daysAgo(14), kg: 66.8, bodyFat: 22.5 }, { id: 'w4', date: daysAgo(7), kg: 66.1, bodyFat: 22 },
+      { id: 'w5', date: daysAgo(1), kg: 65.4, bodyFat: 21 }
+    ], profile: { heightCm: 172, targetKg: 62, gender: 'male', age: 22, activity: 1.375 } };
+    D.sport = { entries: [
+      { id: 's1', date: today, type: '慢跑', minutes: 30, kcal: 322 },
+      { id: 's2', date: daysAgo(2), type: '跳绳', minutes: 15, kcal: 214 }
+    ] };
+
+    log('习惯/待办');
+    D.habits = { items: [
+      { id: 'h1', name: '早起 6:30', icon: 'sun', color: '#F59E0B', records: {}, goal: 1 },
+      { id: 'h2', name: '背 100 个单词', icon: 'book', color: '#5B6CFF', records: {}, goal: 1 },
+      { id: 'h3', name: '23 点前睡', icon: 'moon', color: '#A855F7', records: {}, goal: 1 },
+      { id: 'h4', name: '不喝奶茶', icon: 'heart', color: '#FF7AB6', records: {}, goal: 1 }
+    ] };
+    for (var d = 0; d < 10; d++) { D.habits.items.forEach(function (h, hi) { if ((d + hi) % 4 !== 3) h.records[daysAgo(d)] = true; }); }
+    D.todo = { items: [
+      { id: 'x1', text: '数学第 8 章错题重做', done: false, priority: 'high', quadrant: 1, due: today, subtasks: [{ text: '错题本誊抄', done: true }, { text: '同类型刷 10 道', done: false }], createdAt: Date.now() - 2 * 86400000 },
+      { id: 'x2', text: '英语 2023 真题精读', done: false, priority: 'mid', quadrant: 2, due: daysAgo(-3), subtasks: [], createdAt: Date.now() - 86400000 },
+      { id: 'x3', text: '政治 1000 题第 5 章', done: true, priority: 'mid', quadrant: 2, due: daysAgo(1), subtasks: [], createdAt: Date.now() - 3 * 86400000 },
+      { id: 'x4', text: '买健身房月卡', done: false, priority: 'low', quadrant: 3, due: null, subtasks: [], createdAt: Date.now() - 5 * 86400000 }
+    ] };
+
+    log('饮水/睡眠/日记');
+    D.water = { daily: {}, goal: 2000 };
+    [today, daysAgo(1), daysAgo(2), daysAgo(3), daysAgo(4), daysAgo(5), daysAgo(6)].forEach(function (k, i) { D.water.daily[k] = [1250, 2000, 1750, 2000, 1000, 2250, 1500][i]; });
+    D.sleep = { entries: [1, 2, 3, 4, 5, 6, 7].map(function (n) { return { id: 'sl' + n, date: daysAgo(n - 1), bedtime: '23:30', wake: '06:50', hours: 7.3, quality: [5, 4, 4, 3, 5, 4, 4][n - 1] }; }) };
+    D.diary = { entries: [
+      { id: 'd1', date: today, title: '状态回来了', content: '今天数学错题正确率终于上 80% 了，最近一个月的番茄钟没白坐。晚上忍住了没点奶茶，喝了酸奶。', mood: 'great', weather: 'sunny', words: 52, ts: Date.now() },
+      { id: 'd2', date: daysAgo(3), title: '平台期有点丧', content: '体重卡在 66 好几天了，查了下知识库说是正常的水分波动，再观察一周。', mood: 'down', weather: 'rain', words: 40, ts: Date.now() - 3 * 86400000 }
+    ] };
+
+    log('目标/商城/成就/语录');
+    D.goals = { items: [
+      { id: 'g1', name: '考研总分', type: 'score', current: 320, target: 380, deadline: '2026-12-19', milestones: [{ name: '专业课一轮', done: true }, { name: '英语真题二刷', done: false }, { name: '政治背诵冲刺', done: false }], createdAt: Date.now() - 100 * 86400000 },
+      { id: 'g2', name: '减到 62kg', type: 'weight', current: 65.4, target: 62, deadline: '2027-03-01', milestones: [{ name: '下 65', done: true }, { name: '下 63', done: false }], createdAt: Date.now() - 60 * 86400000 }
+    ] };
+    D.shop = { coin: 235, records: [
+      { id: 'r1', ts: Date.now() - 3600000, item: '完成番茄：数学真题', cost: 5, note: '', type: 'earn' },
+      { id: 'r2', ts: Date.now() - 86400000, item: '习惯打卡', cost: 2, note: '', type: 'earn' },
+      { id: 'r3', ts: Date.now() - 2 * 86400000, item: '奶茶自由', cost: 30, note: '', type: 'spend' }
+    ], wishlist: [
+      { id: 'wl1', name: '看一场电影', cost: 50, done: false },
+      { id: 'wl2', name: '周末睡懒觉', cost: 150, done: false }
+    ] };
+    D.achievements = { unlocked: { 'acc-first-pomodoro': daysAgo(20), 'acc-diary-1': daysAgo(10) } };
+    D.quote = { favs: [{ text: '凡是过往，皆为序章。', by: '莎士比亚', tag: 'general', ts: Date.now() }], todayIndex: -1 };
+    D.knowledge = { readIds: ['ky-001'] };
+    D.onboarded = true;
+
+    log('保存');
+    SL.saveNow();
+    log('完成！跳转仪表盘…');
+    setTimeout(function () { location.href = 'app.html#/dashboard'; }, 400);
+  } catch (e) {
+    log('出错：' + e.message);
+  }
+})();
+</script>
+</body>
+</html>

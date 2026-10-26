@@ -31,12 +31,18 @@ const EARN_GUIDE = [
 
 function shop() { return SL.getData('shop'); }
 
+/* 自律币应为整数（§6.5 各记账项均为整数）；防御历史脏数据/意外小数，显示与判断一律取整 */
+function coinOf(s) { return Math.round(Number(s && s.coin) || 0); }
+
 function totals(s) {
-  const recs = s.records || [];
+  const recs = Array.isArray(s.records) ? s.records : [];
   let earn = 0, spend = 0;
   for (const r of recs) {
-    if (r.type === 'spend') spend += r.cost || 0;
-    else earn += r.cost || 0;
+    if (!r || typeof r !== 'object') continue;
+    // Number 强转：cost 被污染为字符串时避免 '10' + 5 = '105' 类累加错误
+    const c = Number(r.cost) || 0;
+    if (r.type === 'spend') spend += c;
+    else earn += c;
   }
   return { earn, spend };
 }
@@ -72,7 +78,7 @@ function paint() {
       '<div class="shop-coin-card__main">' +
         '<span class="shop-coin-card__wallet">' + SL.icon('wallet', 30) + '</span>' +
         '<div><div class="shop-coin-card__label">自律币余额</div>' +
-        '<strong class="shop-coin-card__num" id="shopCoin">' + (s.coin || 0) + '</strong></div>' +
+        '<strong class="shop-coin-card__num" id="shopCoin">' + coinOf(s) + '</strong></div>' +
       '</div>' +
       '<div class="shop-coin-card__sub">' +
         '<span>' + SL.icon('plus', 14) + ' 累计获得 <strong>' + t.earn + '</strong></span>' +
@@ -140,7 +146,7 @@ function renderWishlist() {
       '<p>心愿单还是空的<br>定一个小奖励，让自律有盼头</p></div>';
     return;
   }
-  const coin = s.coin || 0;
+  const coin = coinOf(s);
   box.innerHTML = '<ul class="shop-wish-list">' + list.map(w => {
     const done = !!w.done;
     const can = coin >= (w.cost || 0);
@@ -176,12 +182,17 @@ function fmtTime(ts) {
 async function redeem(id, btn) {
   const s = shop();
   const w = (s.wishlist || []).find(x => x.id === id);
+  // 已兑换（或并发二次点击时刚被标记 done）直接拒绝，防重复扣币
   if (!w || w.done) return;
+  // 防抖：兑换进行中再点无效
+  if (btn && btn.disabled) return;
+  if (btn) btn.disabled = true;
   const ok = SL.spendCoin('兑换心愿：' + w.name, w.cost || 0);
-  if (!ok) return;
-  w.done = true;
-  w.doneAt = Date.now();
-  SL.setData('shop', s); // 广播 data:shop，paint 会刷新
+  if (!ok) { if (btn) btn.disabled = false; return; }
+  // spendCoin 成功后重新取最新数据再标记，避免覆盖并发写入
+  const s2 = shop();
+  const w2 = (s2.wishlist || []).find(x => x.id === id);
+  if (w2) { w2.done = true; w2.doneAt = Date.now(); SL.setData('shop', s2); }
   const r = btn ? btn.getBoundingClientRect() : null;
   SL.confetti?.(r ? r.left + r.width / 2 : innerWidth / 2, r ? r.top + r.height / 2 : innerHeight / 2);
   SL.toast('恭喜兑换「' + w.name + '」，好好享受！', 'success');
@@ -191,7 +202,7 @@ async function redeem(id, btn) {
 function renderRecords() {
   const box = viewRoot.querySelector('#shopRecords');
   if (!box) return;
-  const recs = (shop().records || []);
+  const recs = Array.isArray(shop().records) ? shop().records : [];
   if (!recs.length) {
     box.innerHTML = '<div class="empty-state shop-rec-empty">' + SL.icon('wallet', 40) +
       '<p>还没有流水<br>去完成番茄钟、打卡，赚第一枚自律币</p></div>';
@@ -199,12 +210,15 @@ function renderRecords() {
   }
   const slice = recs.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   box.innerHTML = '<ul class="shop-rec-list">' + slice.map(r => {
+    if (!r || typeof r !== 'object') return '';
     const spend = r.type === 'spend';
+    const ts = Number(r.ts);
+    const dateStr = isFinite(ts) ? SL.fmt.date(new Date(ts)) + ' ' + fmtTime(ts) : '';
     return '<li class="shop-rec">' +
       '<span class="shop-rec__sign ' + (spend ? 'is-spend' : 'is-earn') + '">' + (spend ? SL.icon('minus', 12) : SL.icon('plus', 12)) + '</span>' +
       '<div class="shop-rec__info"><strong>' + SL.esc(r.item || '自律币') + '</strong>' +
-      '<span class="muted">' + SL.fmt.date(new Date(r.ts)) + ' ' + fmtTime(r.ts) + '</span></div>' +
-      '<span class="shop-rec__amount ' + (spend ? 'is-spend' : 'is-earn') + '">' + (spend ? '-' : '+') + (r.cost || 0) + '</span>' +
+      '<span class="muted">' + SL.esc(dateStr) + '</span></div>' +
+      '<span class="shop-rec__amount ' + (spend ? 'is-spend' : 'is-earn') + '">' + (spend ? '-' : '+') + (Number(r.cost) || 0) + '</span>' +
       '</li>';
   }).join('') + '</ul>';
 }
@@ -212,14 +226,16 @@ function renderRecords() {
 /* ===== 事件 ===== */
 function bindEvents() {
   const form = viewRoot.querySelector('#shopWishForm');
+  if (!form) return;
   form.addEventListener('submit', ev => {
     ev.preventDefault();
     const name = viewRoot.querySelector('#shopWishName').value.trim();
     const cost = parseInt(viewRoot.querySelector('#shopWishCost').value, 10);
     if (!name) { SL.toast('先写下心愿名称', 'error'); return; }
-    if (!(cost > 0)) { SL.toast('请填写有效的代价币数', 'error'); return; }
+    // 钳制到 1-9999：parseInt('12.9')=12、负数/超界输入直接拒绝，防止 NaN 成本混入心愿单
+    if (!Number.isInteger(cost) || cost < 1 || cost > 9999) { SL.toast('请填写 1-9999 的整数币数', 'error'); return; }
     const s = shop();
-    s.wishlist = s.wishlist || [];
+    s.wishlist = Array.isArray(s.wishlist) ? s.wishlist : [];
     s.wishlist.unshift({ id: SL.id(), name, cost, done: false });
     SL.setData('shop', s);
     SL.toast('心愿已加入清单', 'success');
@@ -235,14 +251,16 @@ function bindEvents() {
     if (page > 0) { page--; renderRecords(); updatePager(); }
   });
   viewRoot.querySelector('#shopNext').addEventListener('click', () => {
-    const maxPage = Math.max(0, Math.ceil((shop().records || []).length / PAGE_SIZE) - 1);
+    const maxPage = Math.max(0, Math.ceil(((Array.isArray(shop().records) ? shop().records : []).length) / PAGE_SIZE) - 1);
     if (page < maxPage) { page++; renderRecords(); updatePager(); }
   });
 }
 
 function updatePager() {
-  const recs = (shop().records || []);
+  const recs = Array.isArray(shop().records) ? shop().records : [];
   const maxPage = Math.max(0, Math.ceil(recs.length / PAGE_SIZE) - 1);
+  // 边界兜底：数据被清空/导入后当前页可能越界
+  if (page > maxPage) page = maxPage;
   const prev = viewRoot.querySelector('#shopPrev');
   const next = viewRoot.querySelector('#shopNext');
   const info = viewRoot.querySelector('.shop-pager__info');

@@ -236,14 +236,14 @@
   pointer-events: none;
 }
 
-/* 2. 四餐分区标题左侧 8px 色条：早=晨光黄 / 午=活力橙 / 晚=暮紫 / 加餐=青 */
+/* 2. 四餐分区标题左侧 8px 色条：早=琥珀 / 午=珊瑚 / 晚=暮紫 / 加餐=青 */
 .cal-meal__head { position: relative; padding-left: 16px; }
 .cal-meal__head::before {
   content: ''; position: absolute; left: 0; top: 1px; bottom: 1px;
   width: 8px; border-radius: 4px;
 }
 .cal-meal-grid > .card:nth-child(1) .cal-meal__head::before { background: #FBBF24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.5); }
-.cal-meal-grid > .card:nth-child(2) .cal-meal__head::before { background: #F97316; box-shadow: 0 0 6px rgba(249, 115, 22, 0.5); }
+.cal-meal-grid > .card:nth-child(2) .cal-meal__head::before { background: #FF7F50; box-shadow: 0 0 6px rgba(255, 127, 80, 0.5); }
 .cal-meal-grid > .card:nth-child(3) .cal-meal__head::before { background: #A855F7; box-shadow: 0 0 6px rgba(168, 85, 247, 0.5); }
 .cal-meal-grid > .card:nth-child(4) .cal-meal__head::before { background: #14B8A6; box-shadow: 0 0 6px rgba(20, 184, 166, 0.5); }
 
@@ -282,3 +282,78 @@ html[data-theme="dark"] .cal-macro .bar-fill::after {
   .cal-stat:has(.ring-value:not([style])) .cal-ring__label strong,
   .empty-state svg { animation: none; }
 }
+
+/* ============================================================
+   MV-03 视觉设计审查（仅 CSS，不改 JS 逻辑）
+   ============================================================ */
+
+/* MV-03.1 餐段小计数字随餐段色彩着色（色条同色系，弱化为 -text 色阶保证可读性） */
+.cal-meal-grid > .card:nth-child(1) .cal-meal__sub { color: #B45309; }
+.cal-meal-grid > .card:nth-child(2) .cal-meal__sub { color: #C2410C; }
+.cal-meal-grid > .card:nth-child(3) .cal-meal__sub { color: #7E22CE; }
+.cal-meal-grid > .card:nth-child(4) .cal-meal__sub { color: #0F766E; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(1) .cal-meal__sub { color: #FBBF24; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(2) .cal-meal__sub { color: #FCA37B; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(3) .cal-meal__sub { color: #C084FC; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(4) .cal-meal__sub { color: #2DD4BF; }
+/* 餐段内单条记录的 kcal 同步弱同色（保持层级：分区小计 > 单条） */
+.cal-meal-grid > .card:nth-child(1) .cal-entry__kcal { color: #B45309; }
+.cal-meal-grid > .card:nth-child(2) .cal-entry__kcal { color: #C2410C; }
+.cal-meal-grid > .card:nth-child(3) .cal-entry__kcal { color: #7E22CE; }
+.cal-meal-grid > .card:nth-child(4) .cal-entry__kcal { color: #0F766E; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(1) .cal-entry__kcal { color: #FBBF24; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(2) .cal-entry__kcal { color: #FCA37B; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(3) .cal-entry__kcal { color: #C084FC; }
+html[data-theme="dark"] .cal-meal-grid > .card:nth-child(4) .cal-entry__kcal { color: #2DD4BF; }
+
+/* MV-03.2 摄入环视觉规格对齐仪表盘卡路里环：
+   仪表盘环 stroke-width 8 / track 用 --bg-inset；此处 10 / --border 偏重。
+   统一为 stroke-width 8（SVG 属性可被 CSS 覆盖，不改 JS）+ track 色对齐。 */
+.cal-ring .ring-track { stroke: var(--bg-inset); }
+.cal-ring .ring-value,
+.cal-ring .ring-track { stroke-width: 8; }
+
+/* MV-03.3 健康红黄绿点：尺寸统一 8px（基线已是 8px，此处固化并加同色 halo 规格标注）。
+   halo 已由 ::after blur(3px) 继承内联色实现，这里补 1px 内白描边提升精致度与辨识度 */
+.cal-hdot {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+html[data-theme="dark"] .cal-hdot {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+/* MV-03.4 营养素三横条：label 固定宽度对齐 + 数值右对齐（图例视觉归位，不换行溢出） */
+.cal-macro__head span:first-child {
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.cal-macro__head span:first-child::before {
+  content: ''; width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0;
+}
+/* 图例色点与横条内联色对应：蛋白质绿 / 碳水主色 / 脂肪琥珀（与 MACROS 渲染色一致） */
+.cal-macro:nth-of-type(1) .cal-macro__head span:first-child::before { background: #10B981; }
+.cal-macro:nth-of-type(2) .cal-macro__head span:first-child::before { background: var(--accent); }
+.cal-macro:nth-of-type(3) .cal-macro__head span:first-child::before { background: #F59E0B; }
+
+/* MV-03.5 大数字规格对齐 dash-big（34px/800，与 dashboard 一致） */
+.cal-ring__label strong {
+  font-size: 30px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* MV-03.6 手机端 375px：摄入环与统计列竖排已有；环标签字号收缩 + 四餐 padding 收缩 */
+@media (max-width: 375px) {
+  .cal-stat { gap: 14px; }
+  .cal-ring__label strong { font-size: 26px; }
+  .cal-meal { padding: 14px; }
+  .cal-meal__head { padding-left: 14px; }
+  .cal-macro__num { font-size: 11px; }
+  /* MP-08 修复：趋势 sparkline 固定 260px 宽，347px 卡内左对齐留 87px 空白，居中 */
+  .cal-trend__body { justify-content: center; }
+}
+
+/* MV-03.7 空状态插画统一色：accent 40% 饱和 */
+.empty-state svg { color: color-mix(in srgb, var(--accent) 40%, var(--fg-muted)); opacity: 0.7; }
+
+/* 深色模式：餐段色点在暗底微降饱和 */
+html[data-theme="dark"] .cal-macro__head span:first-child::before { opacity: 0.85; }

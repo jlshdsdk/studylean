@@ -19,7 +19,7 @@ function render(container, params) {
 
   container.innerHTML =
     '<div class="view-header fade-up"><h1>喝水记录</h1>' +
-    '<div class="view-sub">每天 ' + goal + 'ml，大脑保持水润才好使 · 今日 ' + SL.fmt.date(new Date()) + '</div></div>' +
+    '<div class="view-sub">每天 ' + (goal > 0 ? goal : 2000) + 'ml，大脑保持水润才好使 · 今日 ' + SL.fmt.date(new Date()) + '</div></div>' +
 
     '<div class="wt-grid">' +
     '<div class="card card--pad wt-cupcard" id="wtCupCard">' +
@@ -40,8 +40,8 @@ function render(container, params) {
         '<line class="wt-tick" x1="46" y1="198" x2="58" y2="198"/>' +
       '</svg>' +
       '<div class="wt-stats">' +
-        '<div class="wt-big"><span id="wtNum">0</span><small> / ' + goal + ' ml</small></div>' +
-        '<div class="wt-sub" id="wtSub">还差 ' + goal + ' ml 达成今日目标</div>' +
+        '<div class="wt-big"><span id="wtNum">0</span><small> / ' + (goal > 0 ? goal : 2000) + ' ml</small></div>' +
+        '<div class="wt-sub" id="wtSub">还差 ' + (goal > 0 ? goal : 2000) + ' ml 达成今日目标</div>' +
         '<div class="progress-bar wt-progress"><div class="progress-bar__fill" id="wtBar" style="width:0%"></div></div>' +
         '<div class="wt-empty-hint" id="wtHint">' + SL.icon('water', 20) + '<span>水杯还空着，从第一杯水开始今天的自律</span></div>' +
       '</div>' +
@@ -61,7 +61,7 @@ function render(container, params) {
       '</div>' +
       '<div class="wt-undo-row">' +
         '<button class="btn btn--ghost" id="wtUndo">' + SL.icon('minus', 16) + ' 撤销一杯（-250ml）</button>' +
-        '<button class="btn btn--ghost" id="wtGoalBtn">' + SL.icon('target', 16) + ' 目标 ' + goal + 'ml</button>' +
+        '<button class="btn btn--ghost" id="wtGoalBtn">' + SL.icon('target', 16) + ' 目标 ' + (goal > 0 ? goal : 2000) + 'ml</button>' +
       '</div>' +
       '<div class="wt-tip muted">常用参照：一次性纸杯约 200ml，普通矿泉水瓶约 550ml，保温杯约 400ml。</div>' +
     '</div>' +
@@ -94,7 +94,7 @@ function render(container, params) {
   // 目标设置
   container.querySelector('#wtGoalBtn').addEventListener('click', openGoalEditor);
 
-  lastReached = todayMl() >= goal;
+  lastReached = todayMl() >= (goal > 0 ? goal : 2000);
   refresh(true);
   SL.bindCardSwipe?.();
   SL.refreshBadges?.();
@@ -114,7 +114,8 @@ function addMl(delta) {
   const d = SL.getData('water');
   const today = SL.fmt.date(new Date());
   d.daily = d.daily || {};
-  const next = Math.max(0, (d.daily[today] || 0) + delta);
+  // 上限 20000ml 防连点/输入异常导致数值失控；下限 0 防撤销为负
+  const next = Math.min(20000, Math.max(0, (d.daily[today] || 0) + delta));
   d.daily[today] = next;
   SL.setData('water', d);
   if (delta > 0) SL.toast('已记录 +' + delta + 'ml，继续保持', 'success');
@@ -125,7 +126,8 @@ function addMl(delta) {
 function refresh(firstLoad) {
   if (!viewRoot) return;
   const d = SL.getData('water');
-  const goal = d.goal || 2000;
+  // 兜底：goal 为 0/负数/脏数据时回到 2000，防进度条与水位除零
+  const goal = d.goal > 0 ? d.goal : 2000;
   const cur = todayMl();
   const pct = Math.min(100, Math.round(cur / goal * 100));
   const reached = cur >= goal;
@@ -171,21 +173,23 @@ function renderChart(goal) {
   const el = viewRoot && viewRoot.querySelector('#wtChart');
   if (!el) return;
   const daily = SL.getData('water').daily || {};
+  // goal 合法性兜底（防脏数据 0/负值导致 goalPct 计算异常）
+  const g = goal > 0 ? goal : 2000;
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const dt = new Date(); dt.setDate(dt.getDate() - i);
     const key = SL.fmt.date(dt);
     days.push({ key, ml: daily[key] || 0, wd: '日一二三四五六'[dt.getDay()], isToday: i === 0 });
   }
-  const max = Math.max(goal, ...days.map(x => x.ml), 500);
-  const goalPct = Math.min(100, goal / max * 100);
+  const max = Math.max(g, ...days.map(x => x.ml), 500);
+  const goalPct = Math.min(100, g / max * 100);
   el.innerHTML =
-    '<div class="wt-goalline" style="bottom:' + (goalPct * 0.82 + 14) + '%;"><span>目标 ' + goal + 'ml</span></div>' +
+    '<div class="wt-goalline" style="bottom:' + (goalPct * 0.82 + 14) + '%;"><span>目标 ' + g + 'ml</span></div>' +
     days.map(x => {
       const hp = Math.max(2, x.ml / max * 82);
       return '<div class="wt-bar" title="' + x.key + '：' + x.ml + 'ml">' +
         '<span class="wt-bar__val">' + (x.ml || '') + '</span>' +
-        '<div class="wt-bar__col' + (x.ml >= goal ? ' is-goal' : '') + '" style="height:' + hp + '%"></div>' +
+        '<div class="wt-bar__col' + (x.ml >= g ? ' is-goal' : '') + '" style="height:' + hp + '%"></div>' +
         '<span class="wt-bar__label' + (x.isToday ? ' is-today' : '') + '">' + (x.isToday ? '今天' : x.wd) + '</span>' +
         '</div>';
     }).join('');

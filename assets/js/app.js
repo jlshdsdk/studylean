@@ -22,11 +22,13 @@ if (!SL.state.user) {
 
 /* ===== 主题引擎 ===== */
 const mediaDark = window.matchMedia('(prefers-color-scheme: dark)');
+let themeFirstApply = true; // 首次应用主题不做过场动画（避免首屏闪白/截图截到半程过渡）
 function applyTheme() {
   const s = SL.getData('settings');
   const mode = s.themeMode === 'auto' ? (mediaDark.matches ? 'dark' : 'light') : s.themeMode;
   const html = document.documentElement;
-  html.classList.add('theme-transition');
+  if (!themeFirstApply) html.classList.add('theme-transition');
+  themeFirstApply = false;
   html.dataset.theme = mode;
   html.dataset.accent = s.accent || 'indigo';
   html.dataset.cozy = String(!!s.cozy);
@@ -77,6 +79,11 @@ SL.go = function (view, params) {
   else location.hash = target;
 };
 
+/* ===== 快速连点导航竞态防护 ===== */
+// navigate 为 async：连续两次 SL.go 时，先发出的 import 可能后完成并覆盖新视图。
+// 每次 navigate 递增 seq，import 返回后校验 seq 未变才渲染，过期结果直接丢弃。
+let navSeq = 0;
+
 /* ===== 模块 CSS 懒加载 ===== */
 function ensureCss(id) {
   if (!document.querySelector('link[data-mcss="' + id + '"]')) {
@@ -103,6 +110,7 @@ async function navigate() {
   const def = VIEW_MAP[id];
   if (!def) { location.hash = '#/dashboard'; return; }
   const params = pendingParams; pendingParams = null;
+  const seq = ++navSeq;
 
   // 卸载上一个模块
   if (currentModule && typeof currentModule.destroy === 'function') {
@@ -120,14 +128,18 @@ async function navigate() {
   ensureCss(id);
   viewEl.innerHTML = '<div class="view-loading" style="text-align:center;padding:60px 0;color:var(--fg-muted);">' + SL.icon('refresh', 22) + ' 加载中…</div>';
   try {
-    currentModule = await def.mod();
+    const mod = await def.mod();
+    if (seq !== navSeq) return; // 已有更新的导航发出，丢弃本次过期结果
+    currentModule = mod;
     viewEl.innerHTML = '';
-    await currentModule.render(viewEl, params || {});
+    await mod.render(viewEl, params || {});
+    if (seq !== navSeq) return; // render 内部可能又触发跳转
     SL.staggerIn(viewEl);
     SL.bindCardSwipe(viewEl);
     SL.refreshBadges();
     viewEl.focus({ preventScroll: true });
   } catch (e) {
+    if (seq !== navSeq) return;
     console.error('[router] load failed:', id, e);
     viewEl.innerHTML =
       '<div class="empty-state" style="padding:60px 0;">' + SL.icon('x', 44) +
@@ -278,8 +290,35 @@ document.getElementById('btnTheme').addEventListener('click', () => {
 });
 document.getElementById('btnBell').addEventListener('click', () => SL.go('reminder'));
 document.getElementById('btnSearch').addEventListener('click', () => {
-  const kw = prompt('搜索日记关键词：');
-  if (kw && kw.trim()) SL.go('diary', { search: kw.trim() });
+  // MP-04：prompt() 在部分移动浏览器（iOS Safari 限制/隐私模式）被禁用或体验极差，
+  // 改为 SL.modal 输入框（与全站 confirm/modal 一致的交互）
+  const close = SL.modal({
+    title: '搜索日记',
+    body:
+      '<div class="field"><label>关键词</label>' +
+      '<input class="input" id="slSearchKw" placeholder="搜索日记标题/内容…" maxlength="60"></div>',
+    actions: [
+      { label: '取消', onClick: () => close() },
+      { label: '搜索', primary: true, onClick: () => {
+          const kw = (document.getElementById('slSearchKw')?.value || '').trim();
+          close();
+          if (kw) SL.go('diary', { search: kw });
+        } }
+    ]
+  });
+  setTimeout(() => {
+    const inp = document.getElementById('slSearchKw');
+    if (!inp) return;
+    inp.focus({ preventScroll: true });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const kw = inp.value.trim();
+        close();
+        if (kw) SL.go('diary', { search: kw });
+      }
+    });
+  }, 80);
 });
 
 /* ===== 移动端 Tab & 抽屉 ===== */
@@ -341,12 +380,45 @@ function openDrawer() {
   // 当前视图高亮
   panel.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('is-active', el.dataset.view === currentViewId));
   drawer.classList.add('is-open');
+  // MG-05：抽屉打开时锁定 body 滚动（iOS 触摸穿透），防止背景跟手滚动
+  document.body.classList.add('sl-lock');
 }
-function closeDrawer() { drawer.classList.remove('is-open'); }
+function closeDrawer() {
+  drawer.classList.remove('is-open');
+  document.body.classList.remove('sl-lock');
+}
 document.getElementById('drawerMask').addEventListener('click', closeDrawer);
 
+// MG-05：横竖屏切换/旋转后复位抽屉（旋转会重排视口，保持打开态易出现错位与滚动锁卡死）
+window.addEventListener('orientationchange', () => {
+  setTimeout(closeDrawer, 150);
+});
+
+/* ===== MP-04：iOS/Android 键盘弹起处理 =====
+   键盘弹出时 visualViewport 高度显著缩短，fixed 底部 Tab 会悬在键盘上方遮挡输入框。
+   简单方案：visualViewport resize 时对比布局视口，键盘开启则给 body 加 .sl-kb-open
+   （CSS 中隐藏 Tab），收起时移除。100dvh 的 @supports 兜底已由 layout.css 覆盖。 */
+(function () {
+  const vv = window.visualViewport;
+  if (!vv) return; // 不支持时维持原状（dvh 兜底已处理大部分场景）
+  let kbOpen = false;
+  function onResize() {
+    // 键盘通常占视口 ≥120px；再排除旋转/缩放造成的短暂抖动
+    const hidden = window.innerHeight - vv.height > 120;
+    if (hidden !== kbOpen) {
+      kbOpen = hidden;
+      document.body.classList.toggle('sl-kb-open', kbOpen);
+    }
+  }
+  vv.addEventListener('resize', onResize);
+  vv.addEventListener('scroll', onResize);
+})();
+
 /* ===== Onboarding（首启动 4 步引导） ===== */
+let onboardingActive = false; // 防重入守卫：tick 间隙重复调用/手动触发时不再叠层
 function showOnboarding() {
+  if (onboardingActive || SL.getData('onboarded')) return;
+  onboardingActive = true;
   let step = 0;
   const steps = [renderStepWelcome, renderStepExam, renderStepBody, renderStepDone];
   const overlay = document.createElement('div');
@@ -358,6 +430,7 @@ function showOnboarding() {
     steps[step]();
   }
   function finish() {
+    onboardingActive = false;
     SL.setData('onboarded', true, true);
     SL.saveNow();
     overlay.remove();
@@ -487,5 +560,5 @@ if (!location.hash) {
 }
 
 if (!SL.getData('onboarded')) {
-  setTimeout(showOnboarding, 600);
+  setTimeout(() => { try { showOnboarding(); } catch (e) { console.error('[onboarding]', e); } }, 600);
 }

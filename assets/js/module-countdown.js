@@ -76,7 +76,17 @@ function render(container, params) {
 function destroy() { clearInterval(tickTimer); tickTimer = null; }
 
 /* ===== 私有 ===== */
-function isPast(e) { return new Date(e.date + 'T23:59:59').getTime() < Date.now(); }
+// 非法日期（如 localStorage 被改成 '2026-13-45'）返回 NaN，统一兜底
+function examTs(e) {
+  const ts = new Date((e && e.date ? String(e.date) : '') + 'T23:59:59').getTime();
+  return isFinite(ts) ? ts : NaN;
+}
+
+function isPast(e) {
+  const ts = examTs(e);
+  if (isNaN(ts)) return true; // 无法解析的日期按已结束处理，进归档区不阻塞视图
+  return ts < Date.now();
+}
 
 function findExam(id) { return (SL.getData('countdown').exams || []).find(e => e.id === id); }
 
@@ -86,29 +96,31 @@ function rerender(container, params) {
 }
 
 function cdCells(e) {
-  const target = new Date(e.date + 'T23:59:59').getTime();
+  const target = examTs(e);
   const diff = Math.max(0, target - Date.now());
-  const d = Math.floor(diff / 86400000);
-  const h = Math.floor(diff % 86400000 / 3600000);
-  const m = Math.floor(diff % 3600000 / 60000);
-  const s = Math.floor(diff % 60000 / 1000);
+  const valid = isFinite(target);
+  const d = valid ? Math.floor(diff / 86400000) : 0;
+  const h = valid ? Math.floor(diff % 86400000 / 3600000) : 0;
+  const m = valid ? Math.floor(diff % 3600000 / 60000) : 0;
+  const s = valid ? Math.floor(diff % 60000 / 1000) : 0;
   const pad = n => String(n).padStart(2, '0');
-  return '<div class="cd-cell"><b>' + d + '</b><span>天</span></div>' +
-    '<div class="cd-cell cd-cell--sm"><b>' + pad(h) + '</b><span>时</span></div>' +
-    '<div class="cd-cell cd-cell--sm"><b>' + pad(m) + '</b><span>分</span></div>' +
-    '<div class="cd-cell cd-cell--sm"><b>' + pad(s) + '</b><span>秒</span></div>';
+  return '<div class="cd-cell"><b>' + (valid ? d : '—') + '</b><span>天</span></div>' +
+    '<div class="cd-cell cd-cell--sm"><b>' + (valid ? pad(h) : '—') + '</b><span>时</span></div>' +
+    '<div class="cd-cell cd-cell--sm"><b>' + (valid ? pad(m) : '—') + '</b><span>分</span></div>' +
+    '<div class="cd-cell cd-cell--sm"><b>' + (valid ? pad(s) : '—') + '</b><span>秒</span></div>';
 }
 
 function examCard(e, isArchive) {
-  const days = Math.ceil((new Date(e.date + 'T23:59:59') - Date.now()) / 86400000);
-  const phase = phaseLabel(days);
+  const ts = examTs(e);
+  const days = isNaN(ts) ? NaN : Math.ceil((ts - Date.now()) / 86400000);
+  const phase = isNaN(days) ? '日期无效' : phaseLabel(days);
   const prog = progressOf(e);
-  const urgent = !isArchive && days <= 30;
+  const urgent = !isArchive && !isNaN(days) && days <= 30;
   return '<div class="card card--pad cd-card' + (urgent ? ' cd-card--urgent' : '') + (isArchive ? ' cd-card--archived' : '') + '">' +
     '<div class="cd-card__head">' +
     '<span class="cd-card__badge" style="background:' + SL.esc(e.color || '#5B6CFF') + '22;color:' + SL.esc(e.color || '#5B6CFF') + '">' + SL.icon(e.icon || 'countdown', 16) + '</span>' +
     '<div class="cd-card__title"><b>' + SL.esc(e.name) + '</b>' +
-    '<span class="muted" style="font-size:11.5px;">' + e.date + (isArchive ? ' · 已结束' : ' · ' + phase) + '</span></div>' +
+    '<span class="muted" style="font-size:11.5px;">' + SL.esc(e.date) + (isArchive ? ' · 已结束' : ' · ' + phase) + '</span></div>' +
     '<div class="row-actions">' +
     (isArchive
       ? '<button class="btn btn--ghost btn--sm" data-revive="' + e.id + '">改期复活</button>'
@@ -139,8 +151,10 @@ function nextMilestone(days) {
 }
 function progressOf(e) {
   const created = e.createdAt || new Date(e.date).getTime() - 300 * 86400000;
-  const end = new Date(e.date + 'T23:59:59').getTime();
-  return Math.max(0, Math.min(100, (Date.now() - created) / (end - created) * 100));
+  const end = examTs(e);
+  const span = end - created;
+  if (!isFinite(span) || span <= 0) return 100; // 已结束/非法日期防除零与 NaN
+  return Math.max(0, Math.min(100, (Date.now() - created) / span * 100));
 }
 
 function openEditor(e, isRevive) {
@@ -149,7 +163,7 @@ function openEditor(e, isRevive) {
     title: isRevive ? '改期复活「' + e.name + '」' : (isEdit ? '编辑考试' : '添加考试'),
     body:
       '<div class="field"><label>考试名称 *</label><input class="input" id="cdName" maxlength="24" placeholder="如：2027 考研 / 六级 / 期末考" value="' + SL.esc(isEdit || isRevive ? e.name : '') + '"></div>' +
-      '<div class="field"><label>考试日期 *</label><input class="input" id="cdDate" type="date" value="' + (isEdit || isRevive ? e.date : '') + '"></div>' +
+      '<div class="field"><label>考试日期 *</label><input class="input" id="cdDate" type="date" value="' + SL.esc(isEdit || isRevive ? e.date : '') + '"></div>' +
       '<div class="field"><label>颜色标签</label><div class="cd-colors">' +
       ['#5B6CFF', '#FF7AB6', '#14B8A6', '#F59E0B', '#EF4444', '#A855F7'].map(c =>
         '<button type="button" class="cd-color' + ((isEdit || isRevive) && e.color === c ? ' is-on' : '') + '" data-color="' + c + '" style="background:' + c + '"></button>').join('') +

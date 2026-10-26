@@ -15,19 +15,19 @@ const cnt = (SL, key, listKey = 'history') => {
 };
 /** 工具：统计日期键记录（值为 true 或数字）涉及的自然日数 */
 const dayKeys = (obj) => (obj && typeof obj === 'object') ? Object.keys(obj).filter(k => obj[k]).length : 0;
-/** 工具：习惯连续打卡最长天数（跨习惯取最大） */
+/** 工具：习惯连续打卡最长天数（跨习惯取最大）；非法日期串视为断档 */
 const maxStreak = (SL) => {
   const d = SL.getData('habits');
   if (!d || !Array.isArray(d.items)) return 0;
   let best = 0;
   for (const h of d.items) {
-    if (!h || !h.records) continue;
+    if (!h || !h.records || typeof h.records !== 'object') continue;
     const days = Object.keys(h.records).filter(k => h.records[k]).sort();
     let cur = 0, prev = null;
     for (const ds of days) {
       if (prev) {
         const diff = (new Date(ds) - new Date(prev)) / 86400000;
-        cur = diff === 1 ? cur + 1 : 1;
+        cur = (isFinite(diff) && diff === 1) ? cur + 1 : 1;
       } else cur = 1;
       if (cur > best) best = cur;
       prev = ds;
@@ -38,15 +38,17 @@ const maxStreak = (SL) => {
 /** 工具：最早记录日期到今天的天数（用于连续打卡类兜底判断） */
 const datesOf = (SL, key, listKey = 'history') => {
   const d = SL.getData(key);
-  return (d && Array.isArray(d[listKey])) ? d[listKey].map(x => x.date).filter(Boolean).sort() : [];
+  return (d && Array.isArray(d[listKey])) ? d[listKey].filter(x => x && typeof x === 'object' && x.date).map(x => x.date).sort() : [];
 };
-/** 连续日期最长串（YYYY-MM-DD 数组） */
+/** 连续日期最长串（YYYY-MM-DD 数组）；非法日期串产生的 NaN 差值一律视为断档 */
 const longestRun = (days) => {
-  if (!days.length) return 0;
+  if (!days || !days.length) return 0;
   let best = 1, cur = 1;
   for (let i = 1; i < days.length; i++) {
-    const diff = (new Date(days[i]) - new Date(days[i - 1])) / 86400000;
-    cur = diff === 1 ? cur + 1 : 1;
+    const prev = new Date(days[i - 1]);
+    const now = new Date(days[i]);
+    const diff = (now - prev) / 86400000;
+    cur = (isFinite(diff) && diff === 1) ? cur + 1 : 1;
     if (cur > best) best = cur;
   }
   return best;

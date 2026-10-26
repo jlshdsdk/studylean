@@ -111,10 +111,13 @@
       parts.push({ x: size, y: size, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, c: colors[i % colors.length], r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, life: 1 });
     }
     const t0 = performance.now();
+    let done = false;
     function draw(t) {
+      // 模块切换/rAF 停顿时兜底移除 canvas，防泄漏
+      if (done || !cvs.isConnected) { if (done) cvs.remove(); return; }
       const el = (t - t0) / 1400;
       ctx.clearRect(0, 0, cvs.width, cvs.height);
-      if (el >= 1) { cvs.remove(); return; }
+      if (el >= 1) { done = true; cvs.remove(); return; }
       parts.forEach(p => {
         p.x += p.vx * 2; p.y += p.vy * 2; p.vy += 0.12; p.r += p.vr; p.life = 1 - el;
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
@@ -137,24 +140,49 @@
   };
 
   /* ============ 卡片滑动交互（触屏左右滑动显示操作） ============ */
+  // MG-05 修复：
+  // 1) swipe 后卡片停在 translateX(-80px) 会盖住下层点击/使按钮错位 —— 点击卡片任意处时复位
+  // 2) 垂直滑动页面时误改 transform，松手残留 —— 加"水平意图"判定
+  // 3) swipe 打开后点击删除等按钮应正常工作（swiped 态不吞事件，只复位视觉）
   SL.bindCardSwipe = function (root) {
     const scope = root || document;
     scope.querySelectorAll('.swipeable').forEach(card => {
       if (card._swipeBound) return;
       card._swipeBound = true;
-      let sx = 0, sy = 0, dx = 0, dragging = false;
-      card.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dragging = true; dx = 0; }, { passive: true });
+      let sx = 0, sy = 0, dx = 0, dragging = false, horizontal = false;
+      card.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dragging = true; horizontal = false; dx = 0; }, { passive: true });
       card.addEventListener('touchmove', e => {
         if (!dragging) return;
         dx = e.touches[0].clientX - sx;
         const dy = e.touches[0].clientY - sy;
-        if (Math.abs(dx) > Math.abs(dy)) card.style.transform = 'translateX(' + Math.max(-80, Math.min(0, dx)) + 'px)';
+        // 首次超过 8px 时判定主方向，之后不再反转，避免斜向抖动误触发
+        if (!horizontal && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) horizontal = Math.abs(dx) > Math.abs(dy);
+        if (horizontal) card.style.transform = 'translateX(' + Math.max(-80, Math.min(0, dx)) + 'px)';
       }, { passive: true });
       card.addEventListener('touchend', () => {
         dragging = false;
-        card.style.transform = dx < -50 ? 'translateX(-80px)' : '';
-        card.classList.toggle('swiped', dx < -50);
+        const open = horizontal && dx < -50;
+        card.style.transform = open ? 'translateX(-80px)' : '';
+        card.classList.toggle('swiped', open);
       }, { passive: true });
+      // 已处于 swiped 态时，点按（未滑动）先复位，再放行本次点击给真实按钮
+      // MP-04 复验增强：点在操作按钮上（删除/编辑）也同步复位滑出态，
+      // 防止操作后卡片停留在 translateX(-80px) 错位遮挡下层内容
+      card.addEventListener('click', e => {
+        if (card.classList.contains('swiped') && !horizontal) {
+          card.classList.remove('swiped');
+          card.style.transform = '';
+        }
+      }, { passive: true });
+      // 操作按钮点击后同样复位（按钮自己的 click 处理不受影响）
+      card.querySelectorAll('.btn, button').forEach(btn => {
+        if (btn._swipeResetBound) return;
+        btn._swipeResetBound = true;
+        btn.addEventListener('click', () => {
+          card.classList.remove('swiped');
+          card.style.transform = '';
+        }, { passive: true });
+      });
     });
   };
 
@@ -196,19 +224,22 @@
   SL.helpers = {
     todayKey() { return SL.fmt.date(new Date()); },
     timerTodayMin() {
-      const t = SL.getData('timer').history || [];
+      const t = SL.getData('timer').history;
+      if (!Array.isArray(t)) return 0;
       const today = SL.helpers.todayKey();
-      return t.reduce((s, r) => s + (SL.fmt.date(new Date(r.start)) === today ? (r.minutes || 0) : 0), 0);
+      return t.reduce((s, r) => s + (r && SL.fmt.date(new Date(r.start)) === today ? (r.minutes || 0) : 0), 0);
     },
     kcalToday() {
-      const c = SL.getData('calories').entries || [];
+      const c = SL.getData('calories').entries;
+      if (!Array.isArray(c)) return 0;
       const today = SL.helpers.todayKey();
-      return Math.round(c.reduce((s, r) => s + (r.date === today ? (r.kcal || 0) : 0), 0));
+      return Math.round(c.reduce((s, r) => s + (r && r.date === today ? (r.kcal || 0) : 0), 0));
     },
     habitsDoneToday() {
-      const items = SL.getData('habits').items || [];
+      const items = SL.getData('habits').items;
+      if (!Array.isArray(items)) return 0;
       const today = SL.helpers.todayKey();
-      return items.filter(h => h.records && h.records[today]).length;
+      return items.filter(h => h && h.records && h.records[today]).length;
     },
     streakOf(records) { // records: {'YYYY-MM-DD': true}
       if (!records) return 0;

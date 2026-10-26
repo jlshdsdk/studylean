@@ -1,7 +1,40 @@
 /* == module:reminder == */
 
+/* 本模块复用 settings 的 st-row / st-seg / switch 结构，
+   但 module css 按路由懒加载 —— 直接进入本页时 settings.css 未加载，
+   故在此本地兜底（与 m/settings.css 保持一致） */
 .rm-perm__row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding-top: 8px; flex-wrap: wrap;
 }
 .rm-perm__row .muted { font-size: 13px; }
+
+.st-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.st-row:last-child { border-bottom: none; }
+
+.st-seg { display: flex; gap: 4px; background: var(--bg-inset); border-radius: 10px; padding: 3px; }
+.st-seg__btn {
+  border: none; background: none; padding: 6px 12px;
+  border-radius: 8px; font-size: 12.5px; color: var(--fg-muted);
+  transition: all var(--tr-fast);
+}
+.st-seg__btn.is-on { background: var(--bg-card); color: var(--fg); font-weight: 600; box-shadow: var(--shadow-1); }
+
+.switch {
+  width: 42px; height: 24px; border-radius: 24px;
+  background: var(--border); border: none; position: relative;
+  transition: background var(--tr-fast); flex-shrink: 0;
+}
+.switch::after {
+  content: ''; position: absolute; top: 2.5px; left: 3px;
+  width: 19px; height: 19px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--tr-fast);
+}
+.switch.is-on { background: var(--accent); }
+.switch.is-on::after { transform: translateX(17px); }

@@ -27,6 +27,13 @@
 }
 .cd-card__title { flex: 1; min-width: 0; }
 .cd-card__title b { display: block; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* hover 操作按钮用绝对定位悬浮显示，不占布局宽度（避免挤压标题成"2027 ..."） */
+.cd-card .row-actions {
+  position: absolute; top: 14px; right: 14px;
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+  border-radius: 10px; padding: 2px;
+  box-shadow: var(--shadow-1);
+}
 .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity var(--tr-fast); }
 .cd-card:hover .row-actions { opacity: 1; }
 @media (hover: none) { .row-actions { opacity: 1; } }
@@ -65,6 +72,21 @@
   .cd-grid { grid-template-columns: 1fr; }
   .cd-card__head { flex-wrap: wrap; }
   .cd-card__head .row-actions { flex-wrap: wrap; }
+  /* MP-08 修复：touch 设备上 row-actions 常显（opacity:1）且为绝对定位悬浮在
+     标题右侧，375px 实测与日期副标题"2026-12-12 · 强化提升期"重叠 13×7px。
+     移动端改为静态流内整行独占（桌面悬浮交互保留） */
+  .cd-card .row-actions {
+    position: static;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-top: 10px;
+    padding: 4px 2px 2px;
+    border-top: 1px dashed var(--border);
+    background: none;
+    box-shadow: none;
+  }
+  /* MP-08 触控目标：操作按钮 36px 高 → 44px 命中区（视觉不变） */
+  .cd-card__head .row-actions .btn { min-height: 44px; }
 }
 
 /* 颜色选择器 */
@@ -81,16 +103,16 @@
    BE-02 美化层（只加样式，不改上方既有规则语义）
    ============================================================ */
 
-/* -- 紧急卡片：呼吸红色描边（opacity 0.35 ↔ 0.6，3s loop）
+/* -- 紧急卡片：呼吸红色描边（opacity 0.35 ↔ 0.48，3.5s loop，幅度收敛不闹眼）
       通过叠加 outline 动画实现，不改原 border 语义 -- */
 @keyframes cdUrgentBreath {
   0%, 100% { outline-color: rgba(239, 68, 68, 0.35); }
-  50% { outline-color: rgba(239, 68, 68, 0.6); }
+  50% { outline-color: rgba(239, 68, 68, 0.48); }
 }
 .cd-card--urgent {
   outline: 1px solid rgba(239, 68, 68, 0.35);
   outline-offset: -1px;
-  animation: cdUrgentBreath 3s ease-in-out infinite;
+  animation: cdUrgentBreath 3.5s ease-in-out infinite;
 }
 
 /* -- 数字格 hover 抬升 + 统一卡片 hover 阴影节奏 -- */
@@ -114,7 +136,8 @@
   filter: saturate(0.6);
 }
 
-/* -- 进度条：流动渐变填充（background-size 200% + shimmer，8s） -- */
+/* -- 进度条：流动渐变填充（background-size 200% + shimmer，8s）
+      渐变方向统一左→右（90deg），与全站进度条一致 -- */
 .cd-card .progress-bar__fill,
 .cd-card .progress-bar > .bar-fill {
   background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
@@ -126,6 +149,34 @@
   100% { background-position: 200% 0; }
 }
 
+/* -- MV-02：数字格"翻牌钟"质感 —— 内阴影 + 顶部高光线 + 底部暗边，
+      模拟分牌钟翻页面板 -- */
+.cd-cell {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.04)), var(--bg-inset);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.06),
+    inset 0 0 6px rgba(0, 0, 0, 0.04);
+}
+.cd-cell::before {
+  content: '';
+  position: absolute; left: 6%; right: 6%; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  pointer-events: none;
+}
+html[data-theme="dark"] .cd-cell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.18)), var(--bg-inset);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25),
+    inset 0 0 6px rgba(0, 0, 0, 0.2);
+}
+html[data-theme="dark"] .cd-cell::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+}
+/* 紧急卡数字格沿用红字，翻牌底纹同样生效 */
+
 /* -- prefers-reduced-motion：关闭装饰动画 -- */
 @media (prefers-reduced-motion: reduce) {
   .cd-card--urgent { animation: none; }
@@ -133,4 +184,33 @@
   .cd-card .progress-bar > .bar-fill { animation: none; }
   .cd-cell,
   .cd-card { transition: none; }
+}
+
+/* -- MV-02 视觉统一层 -- */
+/* 375px 小屏：4 格数字 26px 验证 —— 375 - 28(view padding) - 32(card pad) = 315px
+   可用，4 格 + 3×8 gap = 每格 ~73px，26px 两位数字 ~32px 宽，不溢出；但小屏下
+   顶部/底部 padding 略收，给翻牌阴影留呼吸空间 */
+@media (max-width: 375px) {
+  .cd-cell { padding: 10px 2px 8px; }
+  .cd-cell b { font-size: 26px; }
+}
+
+/* 深色模式：紧急红改用提亮令牌，保证 4.5:1 对比 */
+html[data-theme="dark"] .cd-card--urgent .cd-cell b { color: var(--danger-text); }
+
+/* 跨模块统一：卡片内 section 标题（h3+icon）规范化（与 timer/dashboard 同款）。
+   countdown 的"已结束"分区 h3 由内联样式着色（muted），仅补齐字号行高 */
+.card h3 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 10px; font-size: 14.5px; font-weight: 600; line-height: 1.4;
+}
+.card h3 svg {
+  width: 28px; height: 28px; padding: 6px;
+  border-radius: 9px; flex: 0 0 auto;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  box-sizing: border-box;
+}
+html[data-theme="dark"] .card h3 svg {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }

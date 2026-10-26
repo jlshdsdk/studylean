@@ -62,7 +62,7 @@ function getRecords() {
 
 function calcBmi(kg, heightCm) {
   const h = (heightCm || 170) / 100;
-  if (!kg || h <= 0) return null;
+  if (!kg || !isFinite(h) || h <= 0) return null;
   return kg / (h * h);
 }
 
@@ -132,10 +132,12 @@ function renderStatCards(records, profile) {
     '</div>';
 
   const recBf = records.length ? records[records.length - 1].bodyFat : null;
-  const bfVal = recBf != null && !isNaN(recBf) ? recBf : estimateBf(bmi, profile);
+  // 体脂实测值须为 3-70 的有限数字，脏数据/null 一律走 BMI 估算或 '--'
+  const bfValid = recBf != null && isFinite(recBf) && recBf >= 3 && recBf <= 70;
+  const bfVal = bfValid ? recBf : estimateBf(bmi, profile);
   bfEl.innerHTML = '<div class="wt-stat"><div class="wt-stat__label">体脂率</div>' +
     '<div class="wt-stat__num">' + (bfVal != null ? bfVal.toFixed(1) + '<small> %</small>' : '--') + '</div>' +
-    '<div class="wt-stat__sub muted">' + (recBf != null ? '来自最近一次实测' : '按 BMI 估算，可实测校准') + '</div></div>';
+    '<div class="wt-stat__sub muted">' + (bfValid ? '来自最近一次实测' : '按 BMI 估算，可实测校准') + '</div></div>';
 
   const target = profile.targetKg || 65;
   if (curKg == null) {
@@ -292,6 +294,7 @@ function openRecordModal(triggerEl) {
       { label: '保存记录', primary: true, onClick: () => {
           const kg = SL.parseNum(document.getElementById('wtKg').value, NaN);
           if (!kg || kg < 20 || kg > 300) { SL.toast('请输入有效体重（20-300 kg）', 'error'); return; }
+          if (!isFinite(kg)) { SL.toast('请输入有效体重（20-300 kg）', 'error'); return; }
           const bfRaw = document.getElementById('wtBfInput').value.trim();
           const bf = bfRaw === '' ? null : SL.parseNum(bfRaw, NaN);
           if (bf != null && (isNaN(bf) || bf < 3 || bf > 70)) { SL.toast('体脂率需在 3-70 之间', 'error'); return; }

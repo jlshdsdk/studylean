@@ -35,7 +35,7 @@
   margin-bottom: 8px;
 }
 .stats-cell__value {
-  font-size: 20px; font-weight: 700; color: var(--fg);
+  font-size: 20px; font-weight: 800; color: var(--fg);
   margin-bottom: 2px;
 }
 
@@ -64,11 +64,25 @@
 }
 @media (max-width: 767px) {
   .stats-grid2 { grid-template-columns: 1fr; }
+  /* MV-05：分段切换按钮触控目标 */
+  .seg__btn { padding: 10px 18px; min-height: 44px; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .seg__btn:active { transform: scale(0.96); }
 }
 
 /* ===== 热力图 ===== */
 .stats-heat-scroll { overflow-x: auto; padding-bottom: 4px; }
 .stats-heat { min-width: 560px; }
+/* MV-05：热力图横向滚动容器强化（触摸惯性 + 渐隐右缘提示） */
+@media (max-width: 767px) {
+  .stats-heat-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 16px), transparent 100%);
+            mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 16px), transparent 100%);
+  }
+  .stats-heat-scroll::-webkit-scrollbar { height: 4px; }
+  .stats-heat-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+}
 .heat-months { display: flex; margin-left: 25px; margin-bottom: 4px; }
 .heat-month {
   font-size: 11.5px; color: var(--fg-muted);
@@ -117,9 +131,9 @@
   background: var(--bg-card); border-radius: 12px;
 }
 
-/* ===== 折线图 ===== */
+/* 折线图网格线：accent 5% 透明度（弱到不干扰数据，强于消失），虚线保留 */
 .ln-svg { width: 100%; height: auto; display: block; }
-.ln-grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 4; }
+.ln-grid { stroke: rgb(var(--accent-raw)); stroke-opacity: 0.05; stroke-width: 1; stroke-dasharray: 3 4; }
 .ln-tick { font-size: 11.5px; fill: var(--fg-muted); }
 .ln-dot { fill: var(--accent); stroke: var(--bg-card); stroke-width: 1.5; }
 
@@ -140,6 +154,13 @@
 @media (max-width: 375px) {
   .heat-grid, .heat-wdlabels, .heat-cell { gap: 2px; }
   .heat-cell { width: 13px; height: 13px; }
+}
+
+/* MP-09：热力图 26 列在窄屏走横向滚动（容器 stats-heat-scroll 已 overflow-x:auto），
+   min-width 由 560 收到 500 并保持滚动可见性提示 */
+@media (max-width: 480px) {
+  .stats-heat { min-width: 500px; }
+  .stats-heat-scroll { position: relative; }
 }
 
 /* ===== BE-04 美化 ===== */
@@ -169,6 +190,8 @@
   position: relative;
   z-index: 1;
 }
+
+/* 热力图 tooltip：原生 title 即可（JS 已在每格写 title），无需额外样式 */
 
 /* 报表数字卡片：icon 底色圆（圆形底座 + 柔和投影） */
 .stats-card__icon {

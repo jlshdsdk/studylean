@@ -97,8 +97,10 @@ function render(container, params) {
   container.querySelector('#tmGear').addEventListener('click', openGear);
   container.querySelector('#tmNoise').addEventListener('click', () => SL.go('noise'));
 
-  // 入参：自动开始（来自 dashboard 快捷按钮）
+  // 入参：自动开始（来自 dashboard 快捷按钮）。消费一次后即清除，
+  // 防止后续因设置保存/数据刷新触发的重渲意外再自动开始一个番茄
   if (viewParams.autoStart && !state.running) {
+    delete viewParams.autoStart;
     state.mode = 'focus';
     container.querySelectorAll('.tm-tab').forEach(x => x.classList.toggle('is-on', x.dataset.mode === 'focus'));
     setTimeout(() => start(), 300);
@@ -107,7 +109,9 @@ function render(container, params) {
   } else {
     // destroy() 清掉了 interval，但番茄仍在后台计时：重进视图需恢复 tickLoop，
     // 否则倒计时冻结且自然完成不会触发 saveHistory/earnCoin/种树
-    state.remainMs = Math.max(0, state.endAt - Date.now());
+    // 注意：暂停态的 endAt 已冻结在暂停时刻，不能用 now 重算 remainMs，
+    // 否则暂停期间离开视图的时间会被错误扣掉（暂停半小时回来倒计时直接清零）
+    if (!state.paused) state.remainMs = Math.max(0, state.endAt - Date.now());
     if (!state.paused) tickLoop();
     syncUI();
   }
@@ -157,6 +161,8 @@ function resume() {
 function stop(byUser) {
   clearInterval(state.interval);
   state.interval = null;
+  // 无论当前是否在 timer 视图，都要把倒计时标题恢复（updateClockUI 在视图外会提前 return）
+  document.title = '研轻 StudyLean — 上岸，也上秤。';
   const elapsedMin = state.mode === 'focus'
     ? Math.round((currentMinutes() * 60000 - Math.max(0, state.endAt - Date.now())) / 60000)
     : 0;

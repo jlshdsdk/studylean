@@ -42,9 +42,9 @@
   border-radius: 999px; font-size: 11.5px; font-weight: 700;
 }
 .wt-tag--thin   { background: rgba(59, 130, 246, 0.14);  color: var(--info-text, #0369A1); }
-.wt-tag--normal { background: rgba(16, 185, 129, 0.14);  color: var(--success-text, #047857); }
-.wt-tag--over   { background: rgba(245, 158, 11, 0.16);  color: var(--warning-text, #B45309); }
-.wt-tag--obese  { background: rgba(239, 68, 68, 0.15);   color: var(--danger-text, #DC2626); }
+.wt-tag--normal { background: rgba(16, 185, 129, 0.12);  color: var(--success-text, #047857); }
+.wt-tag--over   { background: rgba(245, 158, 11, 0.12);  color: var(--warning-text, #B45309); }
+.wt-tag--obese  { background: rgba(239, 68, 68, 0.12);   color: var(--danger-text, #DC2626); }
 html[data-theme="dark"] .wt-tag--thin   { color: #7CB0F9; }
 html[data-theme="dark"] .wt-tag--normal { color: #4ADE80; }
 html[data-theme="dark"] .wt-tag--over   { color: #FBBF24; }
@@ -84,7 +84,7 @@ html[data-theme="dark"] .wt-tag--obese  { color: #F87171; }
 }
 .wt-chart-dot:hover { r: 5.5; }
 .wt-chart-target {
-  stroke: var(--accent-2); stroke-width: 1.4; stroke-dasharray: 6 5; opacity: 0.8;
+  stroke: var(--accent-2); stroke-width: 1.8; stroke-dasharray: 6 4; opacity: 0.95;
 }
 .wt-chart-target-label {
   font-size: 11.5px; fill: var(--accent-2); font-weight: 600;
@@ -243,3 +243,62 @@ html[data-theme="dark"] #wtBmi::before { opacity: 0.9; }
   #wtGoal:has(.wt-stat__num--hit)::after  { opacity: 0.5; transform: none; }
   .empty-state svg { animation: none; }
 }
+
+/* ============================================================
+   MV-03 视觉设计审查（仅 CSS，不改 JS 逻辑）
+   ============================================================ */
+
+/* MV-03.1 BMI 数值大字与分类标签：达成"正常"时 BMI 数字着 success 色呼应胶囊 */
+#wtBmi .wt-stat__num {
+  transition: color var(--tr-mid);
+}
+#wtBmi:has(.wt-tag--normal) .wt-stat__num { color: var(--success-text, #047857); }
+html[data-theme="dark"] #wtBmi:has(.wt-tag--normal) .wt-stat__num { color: #4ADE80; }
+
+/* MV-03.2 里程碑祝贺仪式感：目标达成卡加彩带背景渐变
+   （对角四色柔光斑：琥珀/青/主色/粉，2 层渐变叠加，避免盖住数字） */
+#wtGoal:has(.wt-stat__num--hit) {
+  background:
+    radial-gradient(90px 70px at 12% 18%, rgba(251, 191, 36, 0.16), transparent 70%),
+    radial-gradient(100px 80px at 88% 22%, rgba(45, 212, 191, 0.14), transparent 70%),
+    radial-gradient(110px 90px at 78% 88%, rgba(var(--accent-raw), 0.13), transparent 70%),
+    radial-gradient(80px 60px at 18% 85%, rgba(255, 122, 182, 0.12), transparent 70%);
+}
+html[data-theme="dark"] #wtGoal:has(.wt-stat__num--hit) {
+  background:
+    radial-gradient(90px 70px at 12% 18%, rgba(251, 191, 36, 0.13), transparent 70%),
+    radial-gradient(100px 80px at 88% 22%, rgba(45, 212, 191, 0.11), transparent 70%),
+    radial-gradient(110px 90px at 78% 88%, rgba(var(--accent-raw), 0.14), transparent 70%),
+    radial-gradient(80px 60px at 18% 85%, rgba(255, 122, 182, 0.10), transparent 70%);
+}
+/* 达成文案（"达成!"）加发光，强化仪式感 */
+#wtGoal .wt-stat__num--hit {
+  text-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+}
+html[data-theme="dark"] #wtGoal .wt-stat__num--hit {
+  text-shadow: 0 0 16px rgba(74, 222, 128, 0.5);
+}
+
+/* MV-03.3 大数字规格对齐 dash-big（30px/800 保持模块一致，tabular-nums 已有；
+   此处补 unit 样式统一：small 14px/600 muted 与 calories/water 一致） */
+.wt-stat__num small { font-variant-numeric: tabular-nums; }
+
+/* MV-03.4 曲线目标虚线增强：目标标签加胶囊底色，远看即识别 */
+.wt-chart-target-label {
+  paint-order: stroke;
+  stroke: var(--bg-card);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* MV-03.5 手机端 375px：统计卡组两列收缩不溢出；BMI 色条避让（375px 下卡片有 --pad） */
+@media (max-width: 375px) {
+  .wt-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .wt-stat__num { font-size: 26px; }
+  #wtBmi::before { width: 6px; }
+}
+
+/* MV-03.6 空状态插画统一色：accent 40% 饱和 */
+.empty-state svg { color: color-mix(in srgb, var(--accent) 40%, var(--fg-muted)); opacity: 0.7; }
+
+/* reduced-motion 补充：彩带渐变为静态背景，无需动画豁免；达成 text-shadow 同样静态 */

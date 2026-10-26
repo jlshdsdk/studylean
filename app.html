@@ -10,6 +10,26 @@
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/layout.css">
   <link rel="stylesheet" href="assets/css/components.css">
+  <script>
+  /* 首屏防主题闪烁（FOUC）：在首次绘制前按存储的设置应用 data-theme/accent，
+     避免深色用户先看到浅色底再翻转（也避免截图/打印截到半程过渡）。
+     之后 app.js 的 applyTheme() 仍会执行，属性一致时为无操作。 */
+  (function () {
+    'use strict';
+    try {
+      var raw = localStorage.getItem('sl_data_v1');
+      var d = raw ? JSON.parse(raw) : null;
+      var s = d && d.data && d.data.settings ? d.data.settings : (d && d.settings ? d.settings : null);
+      var mode = s && s.themeMode ? s.themeMode : 'auto';
+      if (mode === 'auto') mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      var html = document.documentElement;
+      html.dataset.theme = mode;
+      if (s && s.accent) html.dataset.accent = s.accent;
+      html.dataset.cozy = String(!!(s && s.cozy));
+      html.dataset.compact = String(!!(s && s.compact));
+    } catch (e) { /* 解析失败保持默认 light */ }
+  })();
+  </script>
 </head>
 <body>
   <div class="app">
@@ -51,6 +71,27 @@
   <script src="assets/js/store.js"></script>
   <script src="assets/js/core.js"></script>
   <script src="assets/js/auth.js"></script>
+  <script>
+  // 全局错误兜底：单模块异常不白屏，toast 提示且不吞 console（保留原报告行为供调试）
+  (function () {
+    'use strict';
+    var lastErrTs = 0;
+    function report(msg) {
+      var now = Date.now();
+      if (now - lastErrTs < 3000) return; // 3s 节流，防错误风暴刷屏
+      lastErrTs = now;
+      try {
+        if (window.SL && typeof SL.toast === 'function') SL.toast('页面出现异常：' + msg, 'error');
+        else console.warn('[global-error]', msg);
+      } catch (e) { /* toast 自身异常不再扩散 */ }
+    }
+    window.addEventListener('error', function (e) { report(String(e.message || '脚本错误')); });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e.reason;
+      report(r && r.message ? String(r.message) : String(r || '异步操作失败'));
+    });
+  })();
+  </script>
   <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>

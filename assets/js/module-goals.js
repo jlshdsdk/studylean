@@ -34,13 +34,14 @@ function render(container, params) {
     // 绑定
     listEl.querySelectorAll('[data-progress]').forEach(b => b.addEventListener('click', () => bumpProgress(b.dataset.progress)));
     listEl.querySelectorAll('[data-set]').forEach(inp => {
-      const commit = () => {
-        const v = SL.parseNum(inp.value, NaN);
-        if (isNaN(v)) { inp.value = ''; return; }
-        setProgress(inp.dataset.set, v);
-      };
       inp.addEventListener('change', commit);
       inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } });
+      function commit() {
+        // 直接 parseFloat：SL.parseNum(v, NaN) 会因 (NaN || 0) 返回 0，导致清空输入误将进度归零
+        const v = parseFloat(inp.value);
+        if (isNaN(v)) { inp.value = ''; return; }
+        setProgress(inp.dataset.set, v);
+      }
     });
     listEl.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEditor(findGoal(b.dataset.edit))));
     listEl.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
@@ -48,16 +49,19 @@ function render(container, params) {
       if (!g) return;
       if (await SL.confirm('删除目标「' + SL.esc(g.name) + '」？')) {
         const d = SL.getData('goals');
-        d.items = d.items.filter(x => x.id !== g.id);
+        d.items = (d.items || []).filter(x => x.id !== g.id);
         SL.setData('goals', d);
         renderList();
       }
     }));
     listEl.querySelectorAll('[data-ms]').forEach(b => b.addEventListener('click', () => {
-      const [gid, idxStr] = b.dataset.ms.split(':');
+      const sep = String(b.dataset.ms).indexOf(':');
+      if (sep < 0) return;
+      const gid = b.dataset.ms.slice(0, sep);
+      const idx = Number(b.dataset.ms.slice(sep + 1));
       const d = SL.getData('goals');
-      const g = d.items.find(x => x.id === gid);
-      const ms = g && Array.isArray(g.milestones) ? g.milestones[Number(idxStr)] : null;
+      const g = (d.items || []).find(x => x.id === gid);
+      const ms = g && Array.isArray(g.milestones) ? g.milestones[idx] : null;
       if (!ms) return;
       ms.done = !ms.done;
       SL.setData('goals', d);
@@ -78,9 +82,17 @@ function destroy() {}
 function findGoal(id) { return (SL.getData('goals').items || []).find(g => g.id === id); }
 
 function goalCard(g) {
-  const pct = Math.max(0, Math.min(100, g.current / g.target * 100));
-  const done = g.current >= g.target;
-  const days = g.deadline ? Math.ceil((new Date(g.deadline + 'T23:59:59') - Date.now()) / 86400000) : null;
+  // 防御脏数据：current/target 非数值时按 0 处理；百分比钳制在 0-100，避免 NaN/Infinity 注入样式
+  const cur = Number(g.current) || 0;
+  const tar = Number(g.target) || 0;
+  const pct = Math.max(0, Math.min(100, (tar > 0 ? cur / tar : 0) * 100)) || 0;
+  const done = tar > 0 && cur >= tar;
+  // deadline 非法日期时 new Date() 得 NaN，Math.ceil(NaN)=NaN → 显示 "剩 NaN 天"，需先判有效
+  let days = null;
+  if (g.deadline) {
+    const dl = new Date(g.deadline + 'T23:59:59');
+    if (!isNaN(dl.getTime())) days = Math.ceil((dl.getTime() - Date.now()) / 86400000);
+  }
   const typeLabel = { score: '分数', weight: '体重 kg', count: '数量', book: '本书', custom: g.unitLabel || '进度' }[g.type] || '进度';
   return '<div class="card card--pad gl-card' + (done ? ' gl-card--done' : '') + '">' +
     '<div class="gl-card__head">' +
@@ -93,7 +105,7 @@ function goalCard(g) {
     '<button class="btn btn--ghost btn--sm" data-del="' + g.id + '">' + SL.icon('trash', 14) + '</button></span></div>' +
 
     '<div class="gl-card__nums">' +
-    '<span class="gl-cur">' + SL.esc(String(g.current)) + '</span><span class="muted">/ ' + SL.esc(String(g.target)) + ' ' + typeLabel + '</span>' +
+    '<span class="gl-cur">' + SL.esc(String(cur)) + '</span><span class="muted">/ ' + SL.esc(String(g.target)) + ' ' + typeLabel + '</span>' +
     (done ? '<span class="tag tag--green">已达成</span>' : '<span class="tag">' + Math.round(pct) + '%</span>') +
     '</div>' +
     '<div class="progress-bar"><div class="progress-bar__fill" style="width:' + pct + '%"></div></div>' +
@@ -115,12 +127,14 @@ function goalCard(g) {
 
 function setProgress(id, value) {
   const d = SL.getData('goals');
-  const g = d.items.find(x => x.id === id);
+  const items = Array.isArray(d.items) ? d.items : (d.items = []);
+  const g = items.find(x => x.id === id);
   if (!g) return;
-  const before = g.current;
+  const before = Number(g.current) || 0;
+  const target = Number(g.target) || 0;
   g.current = Math.max(0, value);
   SL.setData('goals', d);
-  if (g.current >= g.target && before < g.target) {
+  if (target > 0 && g.current >= target && before < target) {
     SL.earnCoin('达成目标：' + g.name, 20);
     SL.toast('目标达成！+20 自律币', 'success');
     SL.confetti(window.innerWidth / 2, window.innerHeight / 3);
@@ -129,11 +143,12 @@ function setProgress(id, value) {
 }
 
 function bumpProgress(key) {
-  const [id, stepStr] = key.split(':');
-  const step = Number(stepStr);
+  const parts = String(key).split(':');
+  const id = parts[0];
+  const step = Number(parts[1]);
   const g = findGoal(id);
-  if (!g) return;
-  setProgress(id, Math.max(0, g.current + step));
+  if (!g || isNaN(step)) return;
+  setProgress(id, Math.max(0, (Number(g.current) || 0) + step));
 }
 
 function openEditor(goal) {
@@ -161,17 +176,24 @@ function openEditor(goal) {
           if (!tar) { SL.toast('请填写目标值', 'error'); return; }
           const type = document.getElementById('gType').value;
           const dl = document.getElementById('gDl').value;
-          const ms = document.getElementById('gMs').value.split('\n').map(s => s.trim()).filter(Boolean).map(n => ({ name: n, done: false }));
-          const d = SL.getData('goals');
-          if (isNew) {
+            const ms = document.getElementById('gMs').value.split('\n').map(s => s.trim()).filter(Boolean).map(n => ({ name: n, done: false }));
+            const d = SL.getData('goals');
+            d.items = d.items || [];
+            if (isNew) {
             d.items.unshift({ id: SL.id(), name, type, current: cur, target: tar, deadline: dl || null, milestones: ms, createdAt: Date.now() });
             SL.toast('目标已创建', 'success');
           } else {
             const t = d.items.find(x => x.id === goal.id);
-            // 保留已勾选状态：按名字匹配
-            const oldMs = t.milestones || [];
+            if (!t) { SL.toast('目标不存在或已被删除', 'error'); return; }
+            // 保留已勾选状态：按名字匹配（重名里程碑只继承第一个，避免计数错位）
+            const used = new Set();
+            const oldMs = Array.isArray(t.milestones) ? t.milestones : [];
             t.name = name; t.type = type; t.current = cur; t.target = tar; t.deadline = dl || null;
-            t.milestones = ms.map(m => ({ ...m, done: (oldMs.find(o => o.name === m.name) || {}).done || false }));
+            t.milestones = ms.map(m => {
+              const idx = oldMs.findIndex((o, oi) => !used.has(oi) && o.name === m.name);
+              if (idx >= 0) used.add(idx);
+              return { ...m, done: idx >= 0 ? !!oldMs[idx].done : false };
+            });
             SL.toast('已保存', 'success');
           }
           SL.setData('goals', d);

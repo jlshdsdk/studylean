@@ -113,11 +113,25 @@
 }
 .todo-item .row-actions { flex: none; }
 
-/* 完成态 */
+/* 完成态（划线动画：width 0→100% 0.3s，叠加在 line-through 上；
+   ::after 用 currentColor，取消完成时 width 收回） */
 .todo-item.is-done { opacity: 0.62; }
 .todo-item.is-done .todo-item__text {
   text-decoration: line-through; color: var(--fg-muted);
   text-decoration-thickness: 1.5px;
+}
+.todo-item__text { position: relative; }
+.todo-item__text::after {
+  content: '';
+  position: absolute; left: 0; top: 55%;
+  width: 0; height: 1.5px;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+.todo-item.is-done .todo-item__text::after {
+  width: 100%; opacity: 0.75;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
 }
 .todo-item.just-done { animation: todo-pop 0.35s ease; }
 @keyframes todo-pop {
@@ -137,7 +151,7 @@
 }
 .todo-check:hover { border-color: var(--accent); color: var(--accent-soft); }
 .todo-check.is-on {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff);
   animation: todo-check-in 0.25s ease;
 }
 @keyframes todo-check-in {
@@ -190,7 +204,7 @@
   transition: all var(--tr-fast);
 }
 .todo-sub__check:hover { border-color: var(--accent); }
-.todo-sub__check.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.todo-sub__check.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
 .todo-sub__text { flex: 1; font-size: 13px; min-width: 0; word-break: break-word; }
 .todo-sub.is-done .todo-sub__text { text-decoration: line-through; color: var(--fg-muted); }
 .todo-sub__del {
@@ -200,6 +214,8 @@
 }
 .todo-sub:hover .todo-sub__del { opacity: 0.7; }
 .todo-sub__del:hover { opacity: 1; color: #EF4444; }
+/* MG-05: touch fallback - sub-task delete stays visible */
+@media (hover: none) { .todo-sub__del { opacity: 0.7; } }
 .todo-sub__add .todo-sub-add__input { height: 32px; font-size: 12.5px; width: 100%; }
 
 /* ===== 四象限视图 ===== */
@@ -281,9 +297,76 @@
   .todo-quickadd__due { flex: 1; width: auto; }
   .todo-stat__num { font-size: 24px; }
   .todo-item__meta .todo-quad-tag { display: none; }
+  /* MP-08 触控目标：优先级圆点 20px 视觉不变，命中区扩到 44px（::before 已被
+     is-on 内圆占用？否——内圆用 ::after；::before 空闲，用作透明扩区） */
+  .todo-pri-dot::before {
+    content: ''; position: absolute; inset: -12px; border-radius: 50%;
+  }
+  /* MP-08 触控目标：列表/四象限切换 32px → 40px（视觉微增，按钮条整体 38px） */
+  .todo-viewtoggle__btn { padding: 10px 14px; }
+  /* MP-08 触控目标：行内操作按钮 36px → 44px 命中区（视觉不变） */
+  .todo-item .row-actions .btn { min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .todo-item.just-done,
   .todo-check.is-on { animation: none; }
+  .todo-item__text::after { transition: none; width: 0; opacity: 0; }
+}
+
+/* ============================================================
+   MV-02 视觉统一层（只加样式，不改上方既有规则语义）
+   ============================================================ */
+
+/* 优先级三色点发光统一：同一发光半径（3px halo，22% 强度），仅颜色随 --pri-c */
+.todo-pri-dot.is-on {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pri-c) 22%, transparent);
+}
+.todo-pri-dot--labeled.is-on i {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pri-c) 22%, transparent);
+}
+/* 列表内 6px 圆点与象限 8px 圆点：统一柔光外晕 */
+.todo-pri::before,
+.todo-quad__dot {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pri-c, var(--q-c)) 18%, transparent);
+}
+.todo-quad__dot { box-shadow: 0 0 0 2px color-mix(in srgb, var(--q-c) 18%, transparent); }
+
+/* 四象限格：标题栏统一浅色条 + 格内留白节奏 —— 徽标底色统一 12%，
+   深色下灰象限(Q4 #94A3B8)文字对比不足时提亮 */
+html[data-theme="dark"] .todo-quad[style*="--q-c:#94A3B8"] .todo-quad__badge,
+html[data-theme="dark"] .todo-quad__badge { color: var(--q-c); }
+.todo-quad__head { margin-bottom: 12px; }
+.todo-quad__list { gap: 8px; }
+.todo-quad__item { padding: 9px 11px; }
+
+/* 深色模式：过期红/子任务删除红提亮 */
+html[data-theme="dark"] .todo-due.is-overdue,
+html[data-theme="dark"] .todo-quad__meta em.is-overdue { color: var(--danger-text); }
+html[data-theme="dark"] .todo-sub__del:hover { color: var(--danger-text); }
+
+/* 跨模块统一：卡片内 section 标题（h3+icon）规范化（与 timer/dashboard 同款）。
+   注意 todo 分组头 h3 在 .todo-group__head 内已有专属样式，此处仅统一 icon 底块 */
+.todo-group__head h3 {
+  font-size: 14.5px; line-height: 1.4;
+}
+.todo-group__head h3 svg,
+.todo-quad__head svg {
+  width: 28px; height: 28px; padding: 6px;
+  border-radius: 9px; flex: 0 0 auto;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  box-sizing: border-box;
+}
+.todo-group--done .todo-group__head h3 svg {
+  background: var(--bg-inset); color: var(--fg-muted);
+}
+html[data-theme="dark"] .todo-group__head h3 svg,
+html[data-theme="dark"] .todo-quad__head svg {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* MG-05: iOS zooms page when focusing inputs with font-size < 16px */
+@media (hover: none) and (pointer: coarse) {
+  .todo-sub__add .todo-sub-add__input { font-size: 16px; }
 }

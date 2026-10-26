@@ -166,8 +166,16 @@ async function checkToday(btn, id) {
   if (t.records[today]) return;
   const prevStreak = SL.helpers.streakOf(t.records);
   t.records[today] = true;
-  SL.setData('habits', d); // 整体 setData 广播（不能只改 records 不广播）
-  SL.earnCoin('习惯打卡', 2);
+  // 写入/记账失败（如存储配额满）时回滚格子状态，避免按钮永久禁用与"打了卡没到账"
+  try {
+    SL.setData('habits', d); // 整体 setData 广播（不能只改 records 不广播）
+    SL.earnCoin('习惯打卡', 2);
+  } catch (err) {
+    delete t.records[today];
+    btn.disabled = false;
+    SL.toast('打卡保存失败，请重试', 'error');
+    return;
+  }
 
   btn.classList.add('is-on');
   const r = btn.getBoundingClientRect();
@@ -229,7 +237,14 @@ async function fixMiss(cell, id, dateKey) {
   // 先扣币，扣失败（余额被并发操作花掉）就不写打卡
   if (!SL.spendCoin('补卡 · ' + t.name, HB_FIX_COST)) return;
   t.records[dateKey] = true;
-  SL.setData('habits', d);
+  try {
+    SL.setData('habits', d);
+  } catch (err) {
+    // 写打卡失败则退回刚扣的币，保证不白扣
+    SL.earnCoin('补卡失败退回', HB_FIX_COST);
+    SL.toast('补卡保存失败，已退回自律币', 'error');
+    return;
+  }
   SL.toast('补卡成功', 'success');
   render(viewRoot, viewParams);
 }

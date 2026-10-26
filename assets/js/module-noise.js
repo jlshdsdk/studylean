@@ -104,7 +104,15 @@ function toggle(id, card) {
     const ctx = ensureCtx();
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    const stops = RECIPES[id].make(ctx, gain);
+    let stops;
+    try {
+      stops = RECIPES[id].make(ctx, gain);
+    } catch (e) {
+      // 合成器创建失败（如 AudioContext 被浏览器回收）：断开 gain 防 GUI 显示播放中却无声
+      try { gain.disconnect(); } catch (e2) {}
+      SL.toast('音频引擎启动失败，请重试', 'error');
+      return;
+    }
     gain.connect(ctx.destination);
     gain.gain.setTargetAtTime(0.7 * masterVal() * 0.5, ctx.currentTime, 0.3);
     nodes.push({ id, gain, stops });

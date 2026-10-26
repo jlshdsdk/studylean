@@ -20,6 +20,8 @@
 .gl-card__name { font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gl-card .row-actions { opacity: 0; }
 .gl-card:hover .row-actions { opacity: 1; }
+/* MG-05: touch fallback */
+@media (hover: none) { .gl-card .row-actions { opacity: 1; } }
 
 .gl-card--done { border: 1px solid rgba(16, 185, 129, 0.4); }
 
@@ -51,11 +53,11 @@
   color: transparent; font-size: 0;
 }
 .gl-ms__item.is-done { background: rgba(16, 185, 129, 0.12); text-decoration: line-through; color: var(--fg-muted); }
-.gl-ms__item.is-done .gl-ms__check { background: var(--success); border-color: var(--success); color: #fff; }
+.gl-ms__item.is-done .gl-ms__check { background: var(--success); border-color: var(--success); color: var(--on-accent, #fff); }
 
 /* ===== BE-05 美化：达标进度条星光 / 里程碑弹入 / hover 百分比放大 ===== */
 
-/* 进度条达标（.gl-card--done）：全条 success 渐变 + 星光扫过 */
+/* 进度条达标（.gl-card--done）：全条 success 渐变 + 星光扫过（亮度收敛：白点降为 0.55/0.4/0.5，光带降为 0.18） */
 .gl-card--done .progress-bar { position: relative; overflow: hidden; }
 .gl-card--done .progress-bar__fill {
   background: linear-gradient(90deg, var(--success), #34D399 60%, var(--success)) !important;
@@ -66,10 +68,10 @@
   position: absolute; top: 0; bottom: 0; left: -40%;
   width: 40%;
   background:
-    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.9) 0, transparent 2px),
-    radial-gradient(circle at 55% 30%, rgba(255, 255, 255, 0.75) 0, transparent 1.5px),
-    radial-gradient(circle at 80% 65%, rgba(255, 255, 255, 0.85) 0, transparent 2px),
-    linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.55) 0, transparent 2px),
+    radial-gradient(circle at 55% 30%, rgba(255, 255, 255, 0.4) 0, transparent 1.5px),
+    radial-gradient(circle at 80% 65%, rgba(255, 255, 255, 0.5) 0, transparent 2px),
+    linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.18), transparent);
   animation: gl-star-sweep 2.4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -99,4 +101,25 @@
   .gl-ms__item.is-done .gl-ms__check { animation: none; }
   .gl-card .tag { transition: none; }
   .gl-card:hover .tag { transform: none; }
+}
+
+/* 深色模式：达标星光再收敛一档（暗底发光更刺眼） */
+html[data-theme="dark"] .gl-card--done .progress-bar::after {
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.35) 0, transparent 2px),
+    radial-gradient(circle at 55% 30%, rgba(255, 255, 255, 0.25) 0, transparent 1.5px),
+    radial-gradient(circle at 80% 65%, rgba(255, 255, 255, 0.3) 0, transparent 2px),
+    linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+/* MG-05: iOS zooms page when focusing inputs with font-size < 16px */
+@media (hover: none) and (pointer: coarse) {
+  .gl-quick__input { font-size: 16px; }
+}
+
+/* MP-09：375px 快捷操作行防溢出——按钮收 padding、输入框收宽，一行放下 */
+@media (max-width: 480px) {
+  .gl-quick { gap: 5px; }
+  .gl-quick__input { width: 64px; }
+  .gl-quick .btn { padding: 4px 8px; font-size: 11.5px; }
 }

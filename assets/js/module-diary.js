@@ -49,7 +49,8 @@ function render(container, params) {
     listEl.querySelectorAll('[data-del]').forEach(el => el.addEventListener('click', async ev => {
       ev.stopPropagation();
       const ent = findEntry(el.dataset.del);
-      if (await SL.confirm('删除「' + (ent.title || SL.fmt.date(new Date(ent.date))) + '」这篇日记？')) {
+      if (!ent) return; // 条目可能已被其他入口删除
+      if (await SL.confirm('删除「' + SL.esc(ent.title || ent.date || '') + '」这篇日记？')) {
         const d = SL.getData('diary');
         d.entries = d.entries.filter(x => x.id !== ent.id);
         SL.setData('diary', d);
@@ -74,6 +75,12 @@ function destroy() {
 
 /* ===== 私有 ===== */
 function findEntry(id) { return (SL.getData('diary').entries || []).find(e => e.id === id); }
+// 纯日期键 'YYYY-MM-DD' 的本地时区解析（避免 UTC 偏移）；非法返回 null
+function parseDateKey(key) {
+  if (typeof key !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+  const d = new Date(key + 'T00:00:00');
+  return isNaN(d.getTime()) ? null : d;
+}
 
 const MOODS = [
   { key: 'great', label: '超棒', icon: '😄' },
@@ -96,9 +103,11 @@ function weatherOf(key) { return WEATHERS.find(w => w.key === key); }
 
 function entryCard(e) {
   const m = moodOf(e.mood), w = weatherOf(e.weather);
+  // 'YYYY-MM-DD' 直接 new Date() 会按 UTC 解析，西半球时区会偏一天；本地化解析保证周几正确
+  const wd = parseDateKey(e.date);
   return '<div class="card card--pad diary-card" data-open="' + e.id + '" style="cursor:pointer;">' +
     '<div class="diary-card__head">' +
-    '<span class="diary-card__date">' + SL.esc(e.date) + ' ' + SL.esc(SL.fmt.weekday(new Date(e.date))) + '</span>' +
+    '<span class="diary-card__date">' + SL.esc(e.date) + ' ' + SL.esc(wd ? SL.fmt.weekday(wd) : '') + '</span>' +
     '<span class="diary-card__mood">' + (m ? m.icon + ' ' + m.label : '') + (w ? ' · ' + w.icon : '') + '</span>' +
     '<span class="row-actions">' +
     '<button class="btn btn--ghost btn--sm" data-edit="' + e.id + '">' + SL.icon('edit', 14) + '</button>' +
@@ -140,6 +149,7 @@ function openEditor(entry) {
             SL.toast('已保存，+3 自律币', 'success');
           } else {
             const t = d.entries.find(x => x.id === entry.id);
+            if (!t) { SL.toast('日记不存在或已被删除', 'error'); close(); render(viewRoot, viewParams); return; }
             Object.assign(t, { title, content, mood, weather, words: content.length });
             SL.toast('已保存', 'success');
           }
@@ -169,16 +179,17 @@ function openEditor(entry) {
 function openReader(entry) {
   if (!entry) return;
   const m = moodOf(entry.mood), w = weatherOf(entry.weather);
-  SL.modal({
-    title: entry.title || SL.fmt.date(new Date(entry.date)),
+  const rd = parseDateKey(entry.date);
+  const close = SL.modal({
+    title: entry.title || entry.date || '日记',
     body:
       '<div class="muted" style="font-size:12px;margin-bottom:12px;">' +
-      SL.esc(entry.date) + ' 周' + SL.esc(SL.fmt.weekday(new Date(entry.date))) +
+      SL.esc(entry.date) + (rd ? ' 周' + SL.esc(SL.fmt.weekday(rd)) : '') +
       (m ? ' · ' + m.icon + ' ' + m.label : '') + (w ? ' · ' + w.icon + ' ' + w.label : '') +
       ' · ' + (entry.words || (entry.content || '').length) + ' 字</div>' +
       '<div class="diary-reader">' + SL.esc(entry.content || '').replace(/\n/g, '<br>') + '</div>',
     actions: [
-      { label: '关闭', onClick: () => {} }
+      { label: '关闭', onClick: () => close() }
     ]
   });
 }

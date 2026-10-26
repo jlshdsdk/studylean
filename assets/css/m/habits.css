@@ -46,7 +46,11 @@
 .hb-card__badge {
   width: 40px; height: 40px; border-radius: 12px; flex: none;
   display: flex; align-items: center; justify-content: center;
-  color: #fff;
+  /* 徽标底色由 JS 内联 HB_COLORS（含浅色 #FF7AB6/#2DD4BF/#F59E0B）写入：
+     白字在浅色底上对比不足，用深字兜底 + 1px 白描边保证任一色下可读 */
+  color: rgba(20, 22, 40, 0.88);
+  -webkit-text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
 }
 .hb-card__name { font-weight: 700; font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hb-card__actions { display: flex; gap: 2px; flex: none; }
@@ -82,19 +86,28 @@
 }
 .hb-card:has(.hb-grown) .hb-streak__num { animation: hb-milestone-glow 2.4s ease-in-out infinite; }
 
-/* 21 天进度条：达标（已养成）加星星 + 发光 */
+/* 21 天进度条：达标（已养成）加星星（absolute 右侧 18px 位）+ 发光 + pop 入场 */
+.hb-progress-row { position: relative; }
 .hb-grown { position: relative; }
 .hb-grown::after {
   content: '★';
-  font-size: 10px;
-  margin-left: 2px;
+  position: absolute; right: -18px; top: 50%;
+  width: 18px;
+  transform: translateY(-50%);
+  font-size: 11px;
   color: #FBBF24;
   text-shadow: 0 0 6px rgba(251, 191, 36, 0.8);
-  animation: hb-star-twinkle 1.6s ease-in-out infinite;
+  animation: hb-star-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+             hb-star-twinkle 1.6s ease-in-out 0.5s infinite;
+}
+@keyframes hb-star-pop {
+  0%   { opacity: 0; transform: translateY(-50%) scale(0.2) rotate(-40deg); }
+  60%  { opacity: 1; transform: translateY(-50%) scale(1.35) rotate(10deg); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0deg); }
 }
 @keyframes hb-star-twinkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.6; transform: scale(0.85); }
+  0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+  50%      { opacity: 0.6; transform: translateY(-50%) scale(0.85); }
 }
 .hb-card:has(.hb-grown) .hb-progress__bar {
   box-shadow: 0 0 8px rgba(45, 212, 191, 0.55);
@@ -125,20 +138,22 @@
   padding: 2px 8px; border-radius: 99px; flex: none;
 }
 
-/* 近 7 天迷你格子 */
+/* 近 7 天迷你格子：统一 22px（375px 下 7×22 + 6×6 = 190px，卡内宽约 311px 充裕） */
 .hb-week { display: flex; gap: 6px; }
 .hb-cell {
-  flex: 1; max-width: 34px; aspect-ratio: 1;
-  border-radius: 8px; border: none; cursor: default;
+  width: 22px; height: 22px; flex: 0 0 auto;
+  border-radius: 7px; border: none; cursor: default;
   background: var(--bg-inset, rgba(127,127,127,0.15));
   display: flex; align-items: center; justify-content: center;
   color: transparent;
   transition: all var(--tr-fast);
   padding: 0;
 }
+.hb-week { justify-content: space-between; }
 .hb-cell svg { width: 13px; height: 13px; }
 .hb-cell.is-done {
-  color: #fff;
+  /* 底色为 JS 内联习惯色（含浅色系），白字改深字兜底（同 hb-card__badge） */
+  color: rgba(20, 22, 40, 0.88);
   box-shadow: 0 2px 8px rgba(16,185,129,0.35);
   /* BE-04: 打卡充能动画 scale 0.6→1 弹性 */
   animation: hb-cell-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -148,9 +163,22 @@
   60%  { transform: scale(1.12); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+/* 已打卡绿色统一饱和度：JS 传色时叠加固定 alpha 边框收边，弱色也清晰 */
+.hb-cell.is-done { outline: 1px solid rgba(255, 255, 255, 0.28); outline-offset: -1px; }
 .hb-cell.is-miss:not(:disabled) {
   cursor: pointer;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--fg-muted);
+  position: relative;
+  border-radius: 7px;
+}
+/* 可补格子角标：右上 coin 图标位（伪元素画圆点，暗示"补卡 -2 币"） */
+.hb-cell.is-miss:not(:disabled)::after {
+  content: '';
+  position: absolute; top: -3px; right: -3px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--warning, #F59E0B);
+  border: 1.5px solid var(--bg-card);
+  opacity: 0.9;
 }
 .hb-cell.is-miss:not(:disabled):hover {
   border-color: var(--accent); color: var(--accent);
@@ -176,7 +204,7 @@
 .hb-check:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.06); }
 .hb-check svg { width: 24px; height: 24px; }
 .hb-check.is-on {
-  background: #10B981; border-color: #10B981; color: #fff;
+  background: var(--success); border-color: var(--success); color: var(--on-accent, #fff);
   animation: hb-pop 0.35s ease;
 }
 .hb-check.is-on:hover { filter: brightness(1.05); }
@@ -203,7 +231,7 @@
   transition: all var(--tr-fast); padding: 0;
 }
 .hb-icon-opt:hover { border-color: var(--accent); color: var(--accent); }
-.hb-icon-opt.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.hb-icon-opt.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
 .hb-icon-opt svg { width: 17px; height: 17px; }
 
 .hb-color-row { display: flex; gap: 10px; }
@@ -233,10 +261,20 @@
   .hb-icon-grid { grid-template-columns: repeat(7, 1fr); }
 }
 
+/* MP-09：375px 统计胶囊防溢出——竖排收缩，保证 3 卡必进一行不裁切 */
+@media (max-width: 480px) {
+  .hb-stats { gap: 6px; }
+  .hb-stat { padding: 10px; gap: 6px; flex-direction: column; align-items: flex-start; }
+  .hb-stat__num { font-size: 16px; }
+}
+
 /* BE-04: 减动效兜底（base.css 有全局开关，此处显式关闭新增动画） */
 @media (prefers-reduced-motion: reduce) {
   .hb-cell.is-done { animation: none; }
-  .hb-grown::after { animation: none; }
+  .hb-grown::after { opacity: 1; transform: translateY(-50%) scale(1) rotate(0); animation: none; }
   .hb-streak__num[title] { animation: none; }
   .hb-card:has(.hb-grown) .hb-streak__num { animation: none; }
 }
+
+/* 移动端 375px 验证：格子 22px 固定尺寸 + space-between 布局，
+   7×22=154px < 卡内容宽（375-28 padding-32 cardpad=315px），无溢出风险 */

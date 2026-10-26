@@ -89,11 +89,11 @@ function render(container) {
       }
       const modalTitle = typeof k.title === 'string' ? k.title : (k.title && k.title.text) || '';
       const modalBody = typeof k.body === 'string' ? k.body : (k.body && k.body.text) || '';
-      SL.modal({
+      const closeCard = SL.modal({
         title: SL.esc(modalTitle),
         body: '<span class="tag" style="margin-bottom:10px;display:inline-block;">' + catName(k.cat) + '</span>' +
           '<p style="font-size:14px;line-height:1.9;margin:0;white-space:pre-line;">' + SL.esc(modalBody) + '</p>',
-        actions: [{ label: '知道了', primary: true, onClick: (ov) => ov.remove() }]
+        actions: [{ label: '知道了', primary: true, onClick: () => closeCard() }]
       });
     }
 

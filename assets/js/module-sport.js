@@ -182,7 +182,7 @@ function renderList() {
     if (await SL.confirm('删除「' + entry.type + ' ' + SL.fmt.dur(entry.minutes) + '」这条记录？')) {
       const data = SL.getData('sport');
       data.entries = data.entries.filter(x => x.id !== entry.id);
-      SL.setData('sport', data);
+      SL.setData('sport', data); // data:sport 事件会触发 renderAll 刷新
       SL.toast('已删除', 'info');
     }
   }));
@@ -199,9 +199,11 @@ function renderAll() {
 /* ===== 添加记录 ===== */
 function addEntry(type, minutes) {
   const sp = findSport(type) || sportOf(type);
-  const kcal = calcKcal(sp, minutes, weightKg());
+  // 时长钳制 1-600 分钟，防快捷连点/异常输入产生离谱 kcal
+  const mins = Math.min(600, Math.max(1, Math.round(minutes)));
+  const kcal = calcKcal(sp, mins, weightKg());
   const data = SL.getData('sport');
-  data.entries.unshift({ id: SL.id(), date: todayKey(), type, minutes: Math.round(minutes), kcal });
+  data.entries.unshift({ id: SL.id(), date: todayKey(), type, minutes: mins, kcal }); // 同运动同日多条为并列记录，顶部 sum 聚合
   SL.setData('sport', data);
   SL.toast('已记录 ' + type + '，消耗约 ' + kcal + ' 千卡', 'success');
 }

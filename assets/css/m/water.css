@@ -225,3 +225,81 @@ html[data-theme="dark"] .wt-cup-outline {
   .wt-quick::after { display: none; }
   .wt-cup-outline { filter: none; }
 }
+
+/* ============================================================
+   MV-03 视觉设计审查（仅 CSS，不改 JS 逻辑）
+   ============================================================ */
+
+/* MV-03.1 水杯中央半透明白底圆片 + 水位百分比叠加。
+   百分比数值需要 DOM 数据源：CSS 无法从 JS 状态取值。
+   实现方式：圆片用纯 CSS ::after 常驻；数字用 attr(data-pct)，
+   只要 JS 在 #wtCup 上写 data-pct 属性（一行逻辑），数字即自动显示。
+   未写属性时只显示磨砂圆片，不显示数字（优雅降级）。 */
+.wt-cup { position: relative; }
+.wt-cup::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 74px; height: 74px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.18), inset 0 0 0 1.5px rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+html[data-theme="dark"] .wt-cup::after {
+  background: rgba(20, 30, 45, 0.45);
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.25), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18);
+}
+.wt-cup[data-pct]::before {
+  content: attr(data-pct) '%';
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  font-size: 20px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--info-text, #0369A1);
+  pointer-events: none;
+}
+html[data-theme="dark"] .wt-cup[data-pct]::before { color: #7DD3FC; }
+
+/* MV-03.2 7 日柱状：圆角顶已有（6px 6px 3px 3px），补顶部受光高光条增强精致度 */
+.wt-bar__col { position: relative; overflow: hidden; }
+.wt-bar__col::after {
+  content: ''; position: absolute; left: 12%; right: 12%; top: 2px;
+  height: 3px; border-radius: 3px;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+/* 今日柱高亮：柱列加描边 + 提亮（今日恒为最后一根） */
+.wt-bar:last-child .wt-bar__col {
+  opacity: 1;
+  box-shadow: 0 0 0 1.5px rgba(14, 165, 233, 0.45), 0 0 10px rgba(14, 165, 233, 0.3);
+}
+.wt-bar:last-child .wt-bar__val { color: var(--info-text, #0369A1); font-weight: 700; }
+
+/* MV-03.3 大数字规格对齐 dash-big（34px/800 已一致，补 tabular 与 dash-big__unit 对齐的 small 规格） */
+.wt-big small { font-variant-numeric: tabular-nums; }
+
+/* MV-03.4 手机端 375px：水杯 200px 宽居中（默认 flex-start 改居中） */
+@media (max-width: 375px) {
+  .wt-cupcard { justify-content: center; text-align: center; }
+  .wt-cup { width: 200px; max-width: 60vw; }
+  .wt-stats { min-width: 0; }
+  .wt-days { gap: 6px; padding: 12px 2px 0; }
+  /* MP-08 修复：375px 下 stats 列被压到 89px，"1250 / 2000 ml" 断成瀑布、
+     单位"/ 2000 ml"与数字重叠 54×23px。375px 下水杯收到 150px 让出列宽
+     （stats 89→139px），数字+单位可同行放下；大数字 26px 保证不溢出 */
+  .wt-cup { width: 150px; max-width: 44vw; }
+  .wt-big { font-size: 26px; display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 6px; }
+  .wt-big small { font-size: 14px; }
+  /* 375px 下水杯画布等比缩放（.wt-cup 本身是 svg，viewBox 0 0 200 270） */
+  .wt-cup { height: auto; }
+}
+
+/* MV-03.5 空状态插画统一色：accent 40% 饱和 */
+.empty-state svg { color: color-mix(in srgb, var(--accent) 40%, var(--fg-muted)); opacity: 0.7; }
+
+/* reduced-motion 补充：圆片与今日高亮为静态样式，无动画豁免项 */

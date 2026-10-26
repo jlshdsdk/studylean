@@ -17,7 +17,7 @@
 }
 .tm-tab:hover { color: var(--fg); }
 .tm-tab.is-on {
-  background: var(--accent); color: #fff; font-weight: 600;
+  background: var(--accent); color: var(--on-accent, #fff); font-weight: 600;
   box-shadow: 0 4px 12px rgba(var(--accent-raw), 0.35);
 }
 
@@ -82,6 +82,26 @@
 .tm-ring svg {
   filter: drop-shadow(0 0 12px var(--accent-soft));
 }
+
+/* -- MV-02：运行态视觉区分 —— 用 :has() 检测开始按钮已隐藏（JS 挂 .hidden
+      即运行/暂停态），给主卡加光晕增强 + 背景 accent 微 tint，不改 JS -- */
+.tm-layout .tm-main {
+  transition: transform 0.25s ease, box-shadow 0.25s ease,
+    background var(--tr-mid), border-color var(--tr-mid);
+}
+.tm-layout .tm-main:has(.tm-btn-start.hidden) {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: var(--shadow-2), 0 0 0 1px rgba(var(--accent-raw), 0.12);
+  background: linear-gradient(180deg, rgba(var(--accent-raw), 0.045), transparent 40%), var(--bg-card);
+}
+.tm-layout .tm-main:has(.tm-btn-start.hidden) .tm-ring svg {
+  filter: drop-shadow(0 0 18px rgba(var(--accent-raw), 0.35));
+}
+
+/* -- MV-02：圆环与中心文字视觉重心校准 —— 环 230px（stroke 内缘 ~198px），
+      中心列 44px 数字 + 8px 间距 + 12px label ≈ 76px 高，自然居中；
+      补一个 -2px 视觉补偿（数字方块字重心偏高） -- */
+.tm-ring__center { padding-bottom: 4px; }
 
 /* -- 卡片级 hover 阴影节奏统一（--shadow-1 → --shadow-2，0.25s）
       timer 主卡/侧卡均为 .card，此处仅覆盖过渡时长节奏 -- */
@@ -161,4 +181,40 @@
   .tm-tab::after,
   .tm-week__bar::after { transition: none; }
   .tm-week__bar { transition: height 0.6s cubic-bezier(0.34, 1.3, 0.64, 1); }
+  .tm-layout .tm-main,
+  .tm-ring svg { transition: none; }
+}
+
+/* -- MV-02 视觉统一层 -- */
+/* 深色模式：运行态 tint 加强一点保证可感知 */
+html[data-theme="dark"] .tm-layout .tm-main:has(.tm-btn-start.hidden) {
+  background: linear-gradient(180deg, rgba(var(--accent-raw), 0.08), transparent 45%), var(--bg-card);
+}
+
+/* 375px：圆环 190px + 时钟 36px 已有；复核环外间距 —— wrap 上下 8/4px、
+   tab 18px、label 16px 保留，仅收 label-input 顶距让重心不偏 */
+@media (max-width: 375px) {
+  .tm-ring-wrap { padding: 4px 0 2px; }
+  .tm-label-input { margin-top: 12px; }
+  .tm-controls { margin-top: 12px; }
+  /* MP-08 触控目标：模式 Tab 37px 高 → 44px（padding 提升而非改布局） */
+  .tm-tab { padding: 12px 4px; }
+}
+
+/* -- MV-02 跨模块统一：卡片内 section 标题（h3+icon）规范化 --
+   与 dashboard/todo/knowledge/countdown 同款规则配套：
+   字号 14.5px / 行高 1.4 / 下边距 10px / icon 底色块 28×28 圆角 9px accent 10% */
+.card h3 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 10px; font-size: 14.5px; font-weight: 600; line-height: 1.4;
+}
+.card h3 svg {
+  width: 28px; height: 28px; padding: 6px;
+  border-radius: 9px; flex: 0 0 auto;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  box-sizing: border-box;
+}
+html[data-theme="dark"] .card h3 svg {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }

@@ -54,7 +54,7 @@
   transition: all var(--tr-mid);
 }
 .nz-card.is-on .nz-card__icon {
-  background: var(--accent); color: #fff;
+  background: var(--accent); color: var(--on-accent, #fff);
   box-shadow: 0 0 0 8px rgba(var(--accent-raw), 0.12);
   animation: nzPulse 2.4s ease-in-out infinite;
 }

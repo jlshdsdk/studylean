@@ -205,9 +205,12 @@
   50%      { transform: translateY(-4px); }
 }
 
-/* 深色模式：暗底下柱状光晕略强、星星光晕保持可见 */
+/* 深色模式：暗底下柱状光晕略强、星星光晕保持可见；顶缘白色高光条在深色柱体上
+   过亮刺眼，降至 0.2（与 countdown.cd-cell 深色高光 0.14~0.22 一档） */
 html[data-theme="dark"] .sl-bar__col.is-ok   { box-shadow: 0 0 10px rgba(52, 211, 153, 0.40); }
 html[data-theme="dark"] .sl-bar__col.is-warn { box-shadow: 0 0 10px rgba(251, 191, 36, 0.40); }
+html[data-theme="dark"] .sl-bar__col.is-ok::after,
+html[data-theme="dark"] .sl-bar__col.is-warn::after { background: rgba(255, 255, 255, 0.2); }
 
 /* 动画减弱偏好 */
 @media (prefers-reduced-motion: reduce) {
@@ -215,3 +218,74 @@ html[data-theme="dark"] .sl-bar__col.is-warn { box-shadow: 0 0 10px rgba(251, 19
   .sl-advice__item svg,
   .empty-state svg { animation: none; }
 }
+
+/* ============================================================
+   MV-03 视觉设计审查（仅 CSS，不改 JS 逻辑）
+   ============================================================ */
+
+/* MV-03.1 评分星星：实心 = warning 金（#F59E0B），空心 = border 灰（基线已有）。
+   原 is-on 用 --warning-text（暗棕 #B45309），按规格改为正金并保留光晕；
+   列表迷你星同步。深色下金底加微提亮描边保证可辨识。 */
+.sl-star.is-on { color: var(--warning); }
+.sl-mini-star.is-on { color: var(--warning); }
+html[data-theme="dark"] .sl-star.is-on { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4)); }
+
+/* MV-03.2 时长柱均值虚线：纯 CSS 无法计算均值，采用自定义属性钩子——
+   JS 在 #slChart 上写一行 style="--avg-pct: xx%"（xx = avg/max*100）即自动显示；
+   未写时不渲染（优雅降级，不改现有逻辑）。 */
+.sl-chart { position: relative; }
+#slChart[style]::after {
+  content: ''; position: absolute; left: 0; right: 0;
+  bottom: var(--avg-pct, 50%);
+  border-top: 1.5px dashed rgba(168, 85, 247, 0.65);
+  pointer-events: none;
+}
+#slChart[style]::before {
+  content: '均值';
+  position: absolute; left: 2px;
+  bottom: calc(var(--avg-pct, 50%) + 3px);
+  font-size: 10.5px; font-weight: 600;
+  color: #7E22CE;
+  pointer-events: none;
+}
+html[data-theme="dark"] #slChart[style]::after { border-top-color: rgba(192, 132, 252, 0.7); }
+html[data-theme="dark"] #slChart[style]::before { color: #C084FC; }
+/* 空态时 JS 写入的 style 若存在也不该显示均值线：仅当含 --avg-pct 才生效由 JS 保证；
+   兜底：空态由 .sl-chart__empty 占位，JS 未设 --avg-pct 时缺省 50%——
+   约定 JS 仅在 has=true 分支写 style，空态分支 innerHTML 直接覆盖整容器，无风险 */
+
+/* MV-03.3 "建议就寝"文案卡月牙 icon 位置：与首行文字光学对齐 + 柔底色圆片 */
+.sl-advice__item svg {
+  margin-top: 3px;
+  padding: 3px;
+  box-sizing: content-box;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  align-self: flex-start;
+}
+/* 月牙浮动动画原点随之调整（保留既有 sl-moon-float） */
+
+/* MV-03.4 时长柱达标/不足双色渐变（已有）——补均值线在柱色之上的层级保障 */
+.sl-chart::after { z-index: 0; }
+.sl-bar { position: relative; z-index: 1; }
+
+/* MV-03.5 大数字规格对齐 dash-big：sl-stat__val 30px/800 与 weight 一致（已有），补 tabular（已有） */
+
+/* MV-03.6 手机端 375px：三星卡与建议卡 padding 收缩 */
+@media (max-width: 375px) {
+  .sl-stats { gap: 10px; }
+  .sl-advice__item { padding: 8px 10px; }
+}
+
+/* MP-09：375px 表单行防溢出——时间输入框在 1fr 1fr 网格内 min-width:0 收缩，
+   列表日期列收窄防挤压 */
+@media (max-width: 480px) {
+  .sl-form__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .sl-form .input { min-width: 0; width: 100%; }
+  .sl-item__date { width: 96px; font-size: 11.5px; }
+}
+
+/* MV-03.7 空状态插画统一色：accent 40% 饱和 */
+.empty-state svg { color: color-mix(in srgb, var(--accent) 40%, var(--fg-muted)); opacity: 0.7; }
+
+/* reduced-motion 补充：均值虚线为静态元素，无动画豁免项 */

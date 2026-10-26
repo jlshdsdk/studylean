@@ -104,9 +104,17 @@ function medalHTML(a, dateStr, tier) {
     '</div>';
 }
 
-/* 逐个 toast 祝贺，间隔 300ms */
+/* 逐个 toast 祝贺，间隔 300ms；一次解锁超过 5 枚时折叠为汇总 toast（节流，防右上角刷屏） */
 let toastTimers = [];
 function celebrate(newly) {
+  const MAX_TOASTS = 5;
+  if (newly.length > MAX_TOASTS) {
+    const heads = newly.slice(0, MAX_TOASTS).map(a => '「' + a.name + '」').join('');
+    toastTimers.push(setTimeout(() => {
+      SL.toast('新解锁 ' + newly.length + ' 枚勋章：' + heads + ' 等，各 +10 自律币', 'success');
+    }, 0));
+    return;
+  }
   newly.forEach((a, i) => {
     toastTimers.push(setTimeout(() => {
       SL.toast('解锁成就「' + a.name + '」+10 自律币', 'success');

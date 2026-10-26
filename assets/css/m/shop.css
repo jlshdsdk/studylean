@@ -4,7 +4,7 @@
 .shop-coin-card {
   margin-bottom: 16px;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-real, var(--accent)) 100%);
-  color: #fff;
+  color: var(--on-accent, #fff);
   border: none;
 }
 .shop-coin-card__main { display: flex; align-items: center; gap: 14px; }
@@ -13,7 +13,7 @@
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.18);
   display: flex; align-items: center; justify-content: center;
-  color: #fff;
+  color: var(--on-accent, #fff);
 }
 .shop-coin-card__label { font-size: 12px; opacity: 0.85; }
 .shop-coin-card__num {
@@ -108,10 +108,11 @@
 .shop-rec:last-child { border-bottom: none; }
 .shop-rec:hover { background: var(--accent-soft); border-radius: 10px; }
 .shop-rec__sign {
-  width: 22px; height: 22px; flex: none;
+  width: 18px; height: 18px; flex: none;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
+.shop-rec__sign svg { width: 10px; height: 10px; }
 .shop-rec__sign.is-earn { background: rgba(47, 191, 113, 0.15); color: var(--success-text, #047857); }
 .shop-rec__sign.is-spend { background: rgba(226, 82, 82, 0.14); color: var(--danger-text, #DC2626); }
 .shop-rec__info {
@@ -146,6 +147,26 @@
 @media (max-width: 560px) {
   .shop-wish-form { grid-template-columns: 1fr 76px auto; gap: 6px; }
   .shop-coin-card__num { font-size: 28px; }
+}
+
+/* MP-09：375px 心愿表单防溢出——输入框 minmax(0,1fr) 可收缩，币数框收窄 */
+@media (max-width: 480px) {
+  .shop-wish-form { grid-template-columns: minmax(0, 1fr) 60px auto; gap: 5px; }
+  .shop-wish-form .input { min-width: 0; width: 100%; }
+}
+
+/* ===== MV-05 移动端触控与横向滚动 ===== */
+/* 赚币攻略表格：窄屏让卡片本身成为横向滚动容器（JS 不可改，复用现有节点） */
+@media (max-width: 560px) {
+  .shop-guide { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .shop-guide__table { min-width: 360px; }
+  /* 流水行触控目标与按压反馈 */
+  .shop-rec { padding: 11px 6px; min-height: 44px; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .shop-rec:active { background: var(--accent-soft); border-radius: 10px; }
+  /* 分段/分页按钮触控 */
+  .shop-pager .btn { min-height: 40px; }
+  /* 心愿行可点区域 */
+  .shop-wish { min-height: 44px; }
 }
 
 /* ===== BE-05 美化：金色余额 / 钱包微转 / 对勾动画 / 流水强化 / 不足抖动 ===== */
@@ -194,7 +215,13 @@
 }
 .shop-rec__sign.is-spend svg { opacity: 0.85; }
 
-/* 余额不足：按钮抖动（.shake 备用类，JS 附加即生效） */
+/* 余额不足：按钮灰禁态（足额=主色可点 / 不足=灰禁）+ 抖动动画（.shake 备用类，JS 附加即生效） */
+.shop-wish [data-redeem]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.shop-wish [data-redeem]:disabled:active { transform: none; }
 .shake { animation: shop-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 @keyframes shop-shake {
   10%, 90% { transform: translateX(-1px); }
@@ -209,4 +236,11 @@
   .shop-wish.is-done,
   .shop-rec:hover .shop-rec__sign.is-earn,
   .shake { animation: none; }
+}
+
+/* 深色模式：金色渐变字在暗底上提亮一档 */
+html[data-theme="dark"] .shop-coin-card__num {
+  background: linear-gradient(100deg, #fff 20%, #fff3c4 45%, #ffdd78 60%, #fff 85%);
+  -webkit-background-clip: text;
+          background-clip: text;
 }

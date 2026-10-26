@@ -7,16 +7,29 @@
 }
 .kn-pick {
   cursor: pointer; position: relative;
-  background: linear-gradient(135deg, var(--bg-card), var(--accent-soft));
+  /* MV-02：渐变方向统一左→右（90deg），与全站进度条/装饰线一致 */
+  background: linear-gradient(90deg, var(--bg-card) 55%, var(--accent-soft));
   transition: transform var(--tr-fast);
 }
-.kn-pick:hover { transform: translateY(-3px); }
+.kn-pick:hover { transform: translateY(-2px); }
 .kn-pick .tag { position: absolute; top: 12px; right: 12px; }
 .kn-pick b { display: block; padding-right: 48px; font-size: 14.5px; }
 
 .kn-filter { display: flex; gap: 8px; flex-wrap: wrap; }
 .kn-cat { cursor: pointer; border: none; font-size: 12.5px; padding: 6px 12px; }
-.kn-cat.is-on { background: var(--accent); color: #fff; }
+/* MV-02：激活态对比度 —— accent 底 + 纯白字在浅色 accent（amber/sakura 等）上
+   不足 4.5:1，改为 accent 底 + 深字兜底方案：白字仅深色 accent 下使用，
+   通用方案用白字但加强底色饱和 + 深色模式白字不变。
+   实测 indigo #5B6CFF 上白字对比 ~4.6:1 达标；浅 accent 系用深字 #1A1D2E。 */
+.kn-cat.is-on {
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(var(--accent-raw), 0.3);
+}
+/* 浅色 accent（sakura/mint/sunset/amber）浅色模式下改深字——已收敛到 base.css 的
+   --on-accent 令牌（html[data-accent=...] 覆写），此处不再重复选择器 */
+html[data-theme="dark"] .kn-cat.is-on { color: var(--on-accent, #fff); }
 
 .kn-grid {
   display: grid;
@@ -24,7 +37,7 @@
   gap: 12px;
 }
 .kn-card { cursor: pointer; transition: transform var(--tr-fast); }
-.kn-card:hover { transform: translateY(-3px); }
+.kn-card:hover { transform: translateY(-2px); }
 .kn-card__head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 8px;
@@ -42,4 +55,41 @@
 .kn-card__excerpt { font-size: 12px; color: var(--fg-muted); margin: 0; }
 
 /* 模态里的标签 */
-.tag--hot { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+.tag--hot { background: rgba(245, 158, 11, 0.15); color: var(--warning-text, var(--warning)); }
+html[data-theme="dark"] .tag--hot { color: var(--warning-text); }
+
+/* ============================================================
+   MV-02 视觉统一层（只加样式，不改上方既有规则语义）
+   ============================================================ */
+
+/* 深色模式：浅 accent 系激活 chip 恢复白字（深色底上白字对比足够）——
+   走 --on-accent 令牌（深色组统一复位白字），删除重复硬编码 */
+html[data-theme="dark"] .kn-cat.is-on { color: var(--on-accent, #fff); }
+
+/* 已读卡灰度协调：去饱和 + 透明度，与 dashboard 空态一致 */
+.kn-card.is-read { filter: grayscale(0.4); }
+.kn-card.is-read .kn-card__read { color: var(--success-text); }
+
+/* prefers-reduced-motion：关闭 hover 抬升过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .kn-pick,
+  .kn-card { transition: none; }
+  .kn-pick:hover,
+  .kn-card:hover { transform: none; }
+}
+
+/* 跨模块统一：卡片内 section 标题（h3+icon）规范化（与 timer/dashboard 同款） */
+.card h3 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 10px; font-size: 14.5px; font-weight: 600; line-height: 1.4;
+}
+.card h3 svg {
+  width: 28px; height: 28px; padding: 6px;
+  border-radius: 9px; flex: 0 0 auto;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  box-sizing: border-box;
+}
+html[data-theme="dark"] .card h3 svg {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}

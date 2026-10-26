@@ -14,6 +14,8 @@ let addPri = 'mid';
 let lastDoneId = null;
 let focusSubId = null;
 let unsub = null;
+let expandedIds = new Set();   // 展开子任务区的待办 id
+let collapsedDone = false;     // 已完成分组是否折叠
 
 const PRIORITIES = {
   high: { label: '高', color: '#EF4444' },
@@ -175,7 +177,8 @@ function itemRow(item) {
   const pri = PRIORITIES[item.priority] || PRIORITIES.mid;
   const today = todayKey();
   const overdue = item.due && !item.done && item.due < today;
-  const subs = item.subtasks || [];
+  // subtasks 非数组兜底（旧数据/手工改坏 localStorage 时防 .map 崩溃）
+  const subs = Array.isArray(item.subtasks) ? item.subtasks : [];
   const subDone = subs.filter(s => s.done).length;
   const q = QUADRANTS[item.quadrant] || QUADRANTS[2];
   const isDone = !!item.done;
@@ -204,7 +207,7 @@ function itemRow(item) {
 }
 
 function subBlock(item) {
-  const subs = item.subtasks || [];
+  const subs = Array.isArray(item.subtasks) ? item.subtasks : [];
   return '<div class="todo-subs">' +
     subs.map((s, i) =>
       '<div class="todo-sub' + (s.done ? ' is-done' : '') + '">' +
@@ -321,7 +324,8 @@ function renderQuad(body, items) {
   let html = '<div class="todo-quadgrid">';
   for (let q = 1; q <= 4; q++) {
     const conf = QUADRANTS[q];
-    const list = active.filter(i => (i.quadrant || 2) === q)
+    // quadrant 非法值（手工改坏 localStorage）归入 Q2，与列表视图 itemRow 的兜底一致，避免条目在四象限视图凭空消失
+    const list = active.filter(i => (QUADRANTS[i.quadrant] ? i.quadrant : 2) === q)
       .sort((a, b) => {
         const ao = a.due && a.due < today ? 1 : 0, bo = b.due && b.due < today ? 1 : 0;
         return bo - ao;
@@ -335,7 +339,7 @@ function renderQuad(body, items) {
       html += '<div class="todo-quad__list">' + list.map(it => {
         const pri = PRIORITIES[it.priority] || PRIORITIES.mid;
         const overdue = it.due && it.due < today;
-        const subs = it.subtasks || [];
+        const subs = Array.isArray(it.subtasks) ? it.subtasks : [];
         return '<div class="todo-quad__item" data-id="' + it.id + '">' +
           '<button class="todo-check" data-check="' + it.id + '">' + SL.icon('check', 13) + '</button>' +
           '<span class="todo-quad__text" data-open="' + it.id + '">' + SL.esc(it.text) + '</span>' +
@@ -392,7 +396,8 @@ function quickAdd() {
 /* ===== 编辑模态 ===== */
 function openEdit(item) {
   let editPri = item.priority || 'mid';
-  let editQuad = item.quadrant || 2;
+  // quadrant 非法值（如手工改坏成 'x'/0）兜底到 Q2，防 QUADRANTS[editQuad] 越界
+  let editQuad = QUADRANTS[item.quadrant] ? item.quadrant : 2;
   const close = SL.modal({
     title: '编辑待办',
     body:

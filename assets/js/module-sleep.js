@@ -20,7 +20,7 @@ function render(container, params) {
     '<div class="view-sub">睡够 7 小时，记忆才会存盘 · 记录昨晚的休息质量</div></div>' +
 
     '<div class="sl-stats stagger">' +
-      statCard('昨晚时长', last ? last.hours : null, 'sl-stat--last') +
+      statCard('昨晚时长', last ? normHours(last.hours) : null, 'sl-stat--last') +
       statCard('平均时长', entries.length ? avgHours(entries) : null, 'sl-stat--avg') +
       '<div class="card card--pad sl-stat">' +
         '<div class="sl-stat__label">质量分布</div>' +
@@ -109,6 +109,11 @@ function render(container, params) {
 function destroy() { viewRoot = null; viewParams = null; }
 
 /* ===== 私有 ===== */
+// 历史脏数据钳制：hours 非 0-24 的数值时归 0（NaN/undefined/null 同此）
+function normHours(h) {
+  const n = Number(h);
+  return (isFinite(n) && n > 0 && n <= 24) ? n : 0;
+}
 function statCard(label, hours, cls) {
   let val = '—', warn = '';
   if (typeof hours === 'number') {
@@ -132,15 +137,19 @@ function calcHours(bed, wake) {
 }
 
 function avgHours(entries) {
-  return entries.reduce((s, e) => s + (e.hours || 0), 0) / entries.length;
+  if (!entries || !entries.length) return 0;
+  const total = entries.reduce((s, e) => s + normHours(e.hours), 0);
+  return total / entries.length;
 }
 
 function distHtml(entries) {
   const labels = ['', '很差', '较差', '一般', '不错', '很好'];
   const colors = ['', '#EF4444', '#F59E0B', '#94A3B8', '#38BDF8', '#10B981'];
-  const total = entries.length;
+  // 仅统计 quality 为 1-5 的有效记录，脏数据不进桶
+  const valid = entries.filter(e => e.quality >= 1 && e.quality <= 5 && Math.round(e.quality) === e.quality);
+  const total = valid.length;
   return [1, 2, 3, 4, 5].map(q => {
-    const n = entries.filter(e => e.quality === q).length;
+    const n = valid.filter(e => e.quality === q).length;
     const pct = total ? Math.round(n / total * 100) : 0;
     return '<div class="sl-dist__row">' +
       '<span class="sl-dist__name">' + labels[q] + '</span>' +
@@ -154,7 +163,7 @@ function renderChart() {
   if (!el) return;
   const entries = SL.getData('sleep').entries || [];
   const byDate = {};
-  entries.forEach(e => { byDate[e.date] = e.hours; });
+  entries.forEach(e => { byDate[e.date] = normHours(e.hours); });
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const dt = new Date(); dt.setDate(dt.getDate() - i);
@@ -182,6 +191,8 @@ function renderChart() {
     const rec = entries.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
     if (!rec) {
       adv.innerHTML = adviceLine('moon', '考研人建议 23:00-24:00 之间入睡，保证 7-9 小时，记忆巩固才充分。');
+    } else if (!(rec.hours > 0)) {
+      adv.innerHTML = adviceLine('moon', '最近一条记录时长异常，建议重新记录一次昨晚睡眠。');
     } else if (rec.hours < 7) {
       adv.innerHTML = adviceLine('zap', '昨晚只有 ' + rec.hours.toFixed(1) + 'h，今天午间可小憩 20 分钟补一补。建议今晚 23:00 前入睡。');
     } else if (rec.hours > 9) {
@@ -210,11 +221,12 @@ function renderList() {
     return;
   }
   el.innerHTML = entries.map(e => {
-    const warn = e.hours < 7;
+    const h = normHours(e.hours);
+    const warn = h > 0 && h < 7;
     return '<div class="sl-item">' +
       '<span class="sl-item__date">' + SL.esc(e.date) + ' ' + SL.esc(SL.fmt.weekday(new Date(e.date))) + '</span>' +
       '<span class="sl-item__time">' + SL.icon('moon', 14) + SL.esc(e.bedtime) + ' → ' + SL.icon('sun', 14) + SL.esc(e.wake) + '</span>' +
-      '<span class="sl-item__hours' + (warn ? ' sl-item__hours--warn' : '') + '">' + (e.hours || 0).toFixed(1) + 'h</span>' +
+      '<span class="sl-item__hours' + (warn ? ' sl-item__hours--warn' : '') + '">' + h.toFixed(1) + 'h</span>' +
       '<span class="sl-item__stars">' + starsMini(e.quality) + '</span>' +
       '<button class="btn btn--ghost btn--sm sl-item__del" data-sldel="' + e.id + '" aria-label="删除">' + SL.icon('trash', 14) + '</button>' +
       '</div>';
@@ -233,9 +245,11 @@ function renderList() {
 }
 
 function starsMini(q) {
+  // quality 缺省按 3 星，且钳制 1-5 防历史脏数据
+  const n = Math.min(5, Math.max(1, Math.round(Number(q) || 3)));
   let out = '';
   for (let i = 1; i <= 5; i++) {
-    out += '<i class="sl-mini-star' + (i <= q ? ' is-on' : '') + '">' + SL.icon('star', 12) + '</i>';
+    out += '<i class="sl-mini-star' + (i <= n ? ' is-on' : '') + '">' + SL.icon('star', 12) + '</i>';
   }
   return out;
 }

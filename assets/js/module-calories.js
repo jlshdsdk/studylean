@@ -52,12 +52,13 @@ function budgetKcal() {
   const p = w.profile || {};
   const recs = (w.records || []).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   // 契约统一：体重取最新记录 kg，无记录兜底 65（与 dashboard kcalBudget 一致）
-  const kg = recs.length ? num(recs[recs.length - 1].kg) : 65;
-  const h = num(p.heightCm, 170), age = num(p.age, 22);
+  const kg = recs.length ? (num(recs[recs.length - 1].kg) || 65) : 65;
+  const h = num(p.heightCm, 170) || 170, age = num(p.age, 22) || 22;
   const genderFix = p.gender === 'female' ? -161 : 5;
   const act = num(p.activity, 1.375) || 1.375;
   const bmr = 10 * kg + 6.25 * h - 5 * age + genderFix;
-  return Math.max(800, Math.round(bmr * act - 300));
+  // 与 dashboard.kcalBudget 完全同式：下限 1，防 activity 异常导致负预算（不要改成 800，否则两处口径分叉）
+  return Math.max(1, Math.round(bmr * act - 300));
 }
 function macroTargets(budget) {
   const t = {};
@@ -89,7 +90,8 @@ function normFood(f) {
     fat: num(f.fat !== undefined ? f.fat : f.fat100),
     tag: f.tag || f.category || f.cat || '',
     health: f.health || f.level || '',
-    unit: num(f.unitGram !== undefined ? f.unitGram : (f.defaultGram !== undefined ? f.defaultGram : (typeof f.unit === 'number' ? f.unit : undefined)), 0) || 100
+    // foods.js 契约：unit=单位名，gram=该单位估算克重；优先取数值克重字段，兜底 100
+    unit: num(f.unitGram !== undefined ? f.unitGram : (f.defaultGram !== undefined ? f.defaultGram : (typeof f.gram === 'number' ? f.gram : undefined)), 0) || 100
   };
 }
 function allCustomFoods() {
@@ -352,7 +354,8 @@ function openAddModal(preMeal) {
     const gramEl = detailEl.querySelector('#calMGram');
     const preview = detailEl.querySelector('#calMPreview');
     const upd = () => {
-      const gram = Math.max(0, num(gramEl.value, 0));
+      // 克数钳制 0-5000，防 0/负/超大值把 kcal 估算推到离谱区间
+      const gram = Math.min(5000, Math.max(0, num(gramEl.value, 0)));
       const k = gram / 100;
       preview.innerHTML = '预计摄入：<strong>' + Math.round(f.kcal * k) + ' kcal</strong>' +
         ' · 蛋白 ' + (f.protein * k).toFixed(1) + 'g · 碳水 ' + (f.carb * k).toFixed(1) + 'g · 脂肪 ' + (f.fat * k).toFixed(1) + 'g';
@@ -360,7 +363,8 @@ function openAddModal(preMeal) {
     gramEl.addEventListener('input', upd);
     upd();
     detailEl.querySelector('#calMConfirm').addEventListener('click', ev => {
-      const gram = Math.max(1, num(gramEl.value, 1));
+      // 落库钳制 1-5000 g，防 0/负/超大值
+      const gram = Math.min(5000, Math.max(1, num(gramEl.value, 1)));
       const k = gram / 100;
       const d = getCal();
       d.entries = d.entries || [];
@@ -439,6 +443,7 @@ function openCustomModal() {
           const kcal = num(document.getElementById('calCKcal').value, -1);
           if (!name) { SL.toast('请填写食物名称', 'error'); return; }
           if (kcal < 0) { SL.toast('请填写热量（kcal/100g）', 'error'); return; }
+          if (kcal > 9999) { SL.toast('每 100g 热量不能超过 9999 kcal', 'error'); return; }
           const d = getCal();
           d.customFoods = d.customFoods || [];
           d.customFoods.push({

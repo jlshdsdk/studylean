@@ -167,7 +167,25 @@
 .sl-usercard__sub { font-size: 11.5px; color: var(--bg-sidebar-fg); }
 
 /* ====== 主区 ====== */
-.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+/* 深色侧边栏 → 浅色内容区过渡：主区左缘 48px 向右淡出竖向高光，
+ * 消除深浅两区的生硬拼接（浅色下几乎不可见，深色下衔接柔和） */
+.app-main::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 48px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+html[data-theme="dark"] .app-main::before { background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent); }
 
 /* ====== 顶栏 ====== */
 .sl-topbar {
@@ -176,12 +194,16 @@
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 26px;
+  gap: 16px;
+  padding: 12px 24px;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
-  backdrop-filter: blur(16px) saturate(1.4);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* 不支持毛玻璃的环境：提高不透明度保证可读性 */
+  .sl-topbar { background: var(--bg); }
 }
 /* 底部细线渐变（左淡入右淡出中实） */
 .sl-topbar::after {
@@ -232,12 +254,12 @@
 
 /* ====== 主视图区 ====== */
 .sl-view {
-  padding: 24px 26px 40px;
+  padding: 24px;
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
 }
-.view-header { margin-bottom: 18px; }
+.view-header { margin-bottom: 16px; }
 .view-header h1 { margin-bottom: 2px; }
 .view-header .view-sub { color: var(--fg-muted); font-size: 13.5px; }
 
@@ -251,31 +273,69 @@
 }
 
 @media (max-width: 767px) {
+  /* —— 底部 Tab（MV-05 精修：56px + 毛玻璃 + 触感按压） —— */
   .sl-mobile-tab {
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: var(--bg-card);
-    border-top: 1px solid var(--border);
+    height: calc(56px + env(safe-area-inset-bottom));
+    align-items: stretch;
+    background: color-mix(in srgb, var(--bg-card) 82%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    box-shadow: 0 -4px 20px rgba(23, 26, 43, 0.06);
     z-index: 50;
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    padding: 0 4px env(safe-area-inset-bottom);
   }
   .sl-mobile-tab__item {
     flex: 1;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     background: none; border: none;
-    font-size: 11.5px;
+    font-size: 10.5px;
+    letter-spacing: 0.2px;
     color: var(--fg-muted);
-    padding: 4px 2px;
-    border-radius: 10px;
-    transition: color var(--tr-fast), transform var(--tr-fast);
+    padding: 0 2px;
+    min-height: 44px;
+    border-radius: 12px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: color var(--tr-fast), transform 0.12s ease;
   }
-  .sl-mobile-tab__item svg { transition: transform var(--tr-mid) cubic-bezier(0.34, 1.3, 0.64, 1); }
+  /* 图标提级到 22px，与 10.5px label 形成层级 */
+  .sl-mobile-tab__item svg { width: 22px; height: 22px; transition: transform var(--tr-mid) cubic-bezier(0.34, 1.3, 0.64, 1); }
+  .sl-mobile-tab__item:active { transform: scale(0.92); }
   .sl-mobile-tab__item.is-active { color: var(--accent); font-weight: 600; }
-  .sl-mobile-tab__item.is-active svg { transform: translateY(-2px); }
+  .sl-mobile-tab__item.is-active svg { transform: translateY(-2px) scale(1.05); }
+  .sl-mobile-tab__item.is-active::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 20px; height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--accent);
+  }
+  .sl-mobile-tab__item { position: relative; }
+
+  /* —— 顶栏（移动端） —— */
   .sl-topbar { padding: 10px 14px; gap: 8px; }
   .sl-topbar__title { font-size: 15.5px; }
   .sl-topbar__date { display: none; }
+  .sl-topbar__btn { width: 36px; height: 36px; border-radius: 10px; }
+  .sl-topbar__btn .dot { top: 6px; right: 7px; width: 7px; height: 7px; }
+  .sl-topbar__btn:active { transform: scale(0.94); }
+  .sl-view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
+
+/* —— 横屏矮屏：Tab 收缩到 46px —— */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 767px) {
+  .sl-mobile-tab { height: calc(46px + env(safe-area-inset-bottom)); }
+  .sl-mobile-tab__item { flex-direction: row; gap: 6px; font-size: 11px; min-height: 40px; }
+  .sl-mobile-tab__item svg { width: 19px; height: 19px; }
+  .sl-mobile-tab__item.is-active svg { transform: translateY(0) scale(1.05); }
+  .sl-mobile-tab__item.is-active::after { display: none; }
+  .sl-view { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
 }
 
 /* ====== 移动端全屏抽屉（更多） ====== */
@@ -288,43 +348,89 @@
 .sl-drawer__mask { position: absolute; inset: 0; background: rgba(10, 12, 24, 0.5); }
 .sl-drawer__panel {
   position: absolute; left: 0; right: 0; bottom: 0;
-  max-height: 82vh;
+  max-height: 84vh;
   background: var(--bg-card);
   border-radius: 24px 24px 0 0;
-  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
   overflow-y: auto;
   animation: drawerUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
   box-shadow: var(--shadow-2);
 }
 @keyframes drawerUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+/* 把手：加宽 + 顶部热区扩大，::after 提示"可收起"（chevron-down 视觉） */
 .sl-drawer__grip {
-  width: 40px; height: 4px; border-radius: 4px;
+  position: relative;
+  width: 48px; height: 5px; border-radius: 5px;
   background: var(--border);
-  margin: 0 auto 14px;
+  margin: 4px auto 6px;
 }
+/* 把手触控热区（视觉不变，命中区扩到 44px 高） */
+.sl-drawer__grip::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px; height: 44px;
+}
+/* chevron-down 收起暗示（纯 CSS，指向下方，暗示点击遮罩/上滑关闭） */
+.sl-drawer__grip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 7px; height: 7px;
+  border-right: 1.8px solid var(--fg-muted);
+  border-bottom: 1.8px solid var(--fg-muted);
+  border-radius: 0 0 2px 0;
+  opacity: 0.55;
+  transition: opacity var(--tr-fast), transform var(--tr-fast);
+}
+.sl-drawer__panel:active .sl-drawer__grip::after { opacity: 0.9; }
+/* 把手整行作为可点击热区（app.js 给 grip 绑过事件则直接生效；未绑也不影响布局） */
+.sl-drawer__grip { cursor: pointer; touch-action: manipulation; }
+/* 抽屉内分区：用户卡区与快捷操作之间的留白（JS 渲染的内联样式由这里兜底统一） */
 .sl-drawer__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 .sl-drawer__cell {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 12px 4px;
-  border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  min-height: 64px;
+  padding: 10px 4px;
+  border-radius: 14px;
   background: var(--bg-inset);
   border: none;
   font-size: 11.5px;
+  line-height: 1.3;
   color: var(--fg);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition: transform var(--tr-fast), background var(--tr-fast), color var(--tr-fast);
 }
-.sl-drawer__cell:active { transform: scale(0.96); }
-.sl-drawer__cell.is-active { background: var(--accent); color: #fff; }
+.sl-drawer__cell:active { transform: scale(0.94); background: var(--accent-soft); }
+.sl-drawer__cell.is-active { background: var(--accent); color: var(--on-accent, #fff); box-shadow: 0 4px 12px var(--accent-soft); }
+/* 图标底色块统一（非激活态给图标一层柔色底，激活态保持 accent 实底） */
+@media (max-width: 767px) {
+  .sl-drawer__cell:not(.is-active) svg {
+    width: 38px; height: 38px;
+    padding: 8px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-card) 72%, transparent);
+  }
+  .sl-drawer__cell.is-active svg { width: 38px; height: 38px; padding: 8px; box-sizing: border-box; }
+  /* 分区留白：用户卡行之后与快捷操作网格之间 */
+  .sl-drawer__panel > div[style*="margin-bottom:10px"] { margin-bottom: 16px !important; }
+}
 
 /* ====== Onboarding 全屏引导 ====== */
 .onboarding {
   position: fixed; inset: 0;
   z-index: 80;
   background: rgba(10, 12, 24, 0.6);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
@@ -350,6 +456,16 @@
 @keyframes obFade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+/* MV-05：Onboarding 移动端适配 */
+@media (max-width: 640px) {
+  .onboarding { padding: 14px; align-items: flex-end; }
+  .onboarding__card { padding: 22px 20px; border-radius: 20px 20px 16px 16px; }
+  .onboarding__card .input,
+  .onboarding__card input[type="date"],
+  .onboarding__card input[type="number"],
+  .onboarding__card input[type="text"] { font-size: 16px; } /* ≥16px 防 iOS 聚焦自动放大 */
+  .onboarding__card .btn { min-height: 48px; height: 48px; border-radius: 12px; }
 }
 
 /* ====== 打印友好 ====== */
@@ -378,13 +494,16 @@
   box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1.5px var(--accent);
 }
 
-/* ====== 美化 BE-06：reduced-motion 补充 ====== */
+/* ====== 美化 BE-06 + MV-05：reduced-motion 补充 ====== */
 @media (prefers-reduced-motion: reduce) {
   .sl-nav__item.is-active::before,
   .sl-topbar__btn svg,
+  .sl-topbar__btn:active,
   .sl-usercard__avatar,
+  .sl-mobile-tab__item,
   .sl-mobile-tab__item svg,
   .sl-drawer__cell,
+  .sl-drawer__grip::after,
   .onboarding__card > *:not(.onboarding__steps),
   .sl-topbar__btn .dot::after {
     animation: none;
@@ -392,4 +511,27 @@
     transform: none;
   }
   .sl-sidebar { animation: none; }
+  .sl-drawer__panel { animation-duration: 0.01ms; }
+  /* MV-05：触控反馈类按压缩放在 reduced-motion 下取消 */
+  .sl-mobile-tab__item:active,
+  .sl-drawer__cell:active { transform: none; }
 }
+
+/* ====== MG-05 移动端补充 ====== */
+/* 抽屉打开时 body 滚动锁（app.js 开/关抽屉时增删 body.sl-lock） */
+body.sl-lock { overflow: hidden; }
+
+/* iOS 键盘弹起时 visual viewport 缩短，fixed bottom Tab 会浮在键盘上方错位：
+   支持 dvh 的浏览器用动态视口高度让布局跟随，避免 Tab 被顶起 */
+@supports (height: 100dvh) {
+  @media (max-width: 767px) {
+    .app { min-height: 100dvh; }
+  }
+}
+
+/* MP-04：键盘弹起时隐藏底部 Tab（app.js 经 visualViewport 检测加 body.sl-kb-open）。
+   fixed Tab 悬在键盘上方遮挡输入框，隐藏是行为上最稳的方案（配合 dvh 兜底） */
+@media (max-width: 767px) {
+  body.sl-kb-open .sl-mobile-tab { display: none; }
+}
+
