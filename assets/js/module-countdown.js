@@ -114,7 +114,6 @@ function examCard(e, isArchive) {
   const ts = examTs(e);
   const days = isNaN(ts) ? NaN : Math.ceil((ts - Date.now()) / 86400000);
   const phase = isNaN(days) ? '日期无效' : phaseLabel(days);
-  const prog = progressOf(e);
   const urgent = !isArchive && !isNaN(days) && days <= 30;
   return '<div class="card card--pad cd-card' + (urgent ? ' cd-card--urgent' : '') + (isArchive ? ' cd-card--archived' : '') + '">' +
     '<div class="cd-card__head">' +
@@ -131,8 +130,7 @@ function examCard(e, isArchive) {
     (isArchive
       ? '<div class="muted" style="padding:16px 0;">这场考试已成过去。无论结果如何，你坚持到了这里。</div>'
       : '<div class="cd-cells" data-cd="' + e.id + '">' + cdCells(e) + '</div>' +
-        '<div class="progress-bar" style="margin-top:14px;"><div class="progress-bar__fill" style="width:' + prog + '%"></div></div>' +
-        '<div class="cd-card__foot muted"><span>备考进度 ' + Math.round(prog) + '%</span>' +
+        '<div class="cd-card__foot muted">' +
         (urgent ? '<span class="danger-text">⚠ 考前冲刺</span>' : '<span>里程碑 ' + nextMilestone(days) + '</span>') + '</div>') +
     '</div>';
 }
@@ -148,13 +146,6 @@ function nextMilestone(days) {
   const ms = [30, 100, 200, 300];
   for (const m of ms) if (days > m) return m + ' 天节点已过';
   return '冲刺';
-}
-function progressOf(e) {
-  const created = e.createdAt || new Date(e.date).getTime() - 300 * 86400000;
-  const end = examTs(e);
-  const span = end - created;
-  if (!isFinite(span) || span <= 0) return 100; // 已结束/非法日期防除零与 NaN
-  return Math.max(0, Math.min(100, (Date.now() - created) / span * 100));
 }
 
 function openEditor(e, isRevive) {

@@ -35,8 +35,7 @@ function render(container, params) {
       ? '<div class="dash-card__head"><span class="dash-card__icon">' + SL.icon('countdown', 20) + '</span><b>' + SL.esc(exam.name) + '</b>' +
         '<span class="tag tag--red">' + phaseLabel(exam) + '</span></div>' +
         '<div class="dash-countdown" id="dashCd">' + countdownHTML(exam) + '</div>' +
-        '<div class="progress-bar" style="margin-top:14px;"><div class="progress-bar__fill" style="width:' + examProgress(exam) + '%"></div></div>' +
-        '<div class="muted" style="font-size:11.5px;margin-top:6px;">' + SL.esc(exam.date) + ' · 总进度 ' + Math.round(examProgress(exam)) + '%</div>'
+        '<div class="muted" style="font-size:11.5px;margin-top:10px;">' + SL.esc(exam.date) + '</div>'
       : '<div class="empty-state empty-state--sm">' + SL.icon('countdown', 36) + '<p>还没有考试倒计时</p>' +
         '<button class="btn btn--primary btn--sm" data-go="countdown">去设置</button></div>') +
     '</div>' +
@@ -247,15 +246,6 @@ function countdownHTML(exam) {
   return '<div class="dash-cd">' +
     cell(d, '天') + cell(h, '时') + cell(m, '分') + cell(s, '秒') +
     '</div><div class="muted" style="font-size:11px;margin-top:4px;">距考试还有 <b style="color:var(--accent)">' + d + '</b> 天</div>';
-}
-function examProgress(exam) {
-  const created = exam.createdAt || new Date(exam.date).getTime() - 300 * 86400000;
-  const end = new Date(exam.date + 'T23:59:59').getTime();
-  const span = end - created;
-  // 已结束/非法日期：span ≤ 0 或 NaN 时避免除零与 NaN 传播
-  if (!isFinite(span) || span <= 0) return 100;
-  const p = (Date.now() - created) / span * 100;
-  return Math.max(0, Math.min(100, p));
 }
 function totalPomodoros() {
   return (SL.getData('timer').history || []).filter(r => r.type === 'focus').length;
